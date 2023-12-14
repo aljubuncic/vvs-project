@@ -16,6 +16,9 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.IO;
 using System.Xml.Linq;
 using Humanizer;
+using Burgija.Interfaces;
+using System.Threading.Tasks;
+using System;
 
 namespace Burgija.Tests
 {
