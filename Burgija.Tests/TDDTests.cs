@@ -1,6 +1,5 @@
 ﻿using Burgija.Controllers;
 using Burgija.Models;
-using Burgija.Data;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System;
@@ -8,7 +7,7 @@ using System;
 namespace Burgija.Tests {
     [TestClass]
     public class TDDTests {
-        private HomeController controller;
+        private RentController controller;
         private static List<Discount> discounts = new List<Discount>{
                 new Discount(1, new DateTime(2023, 12, 1), new DateTime(2023, 12, 31), 50),
                 new Discount(2, new DateTime(2023, 12, 1), new DateTime(2023, 12, 31), 25),
@@ -19,7 +18,7 @@ namespace Burgija.Tests {
 
         [TestInitialize]
         public void TestSetup() {
-            controller = new HomeController(null, null);
+            controller = new RentController(null);
         }
 
         [TestMethod]

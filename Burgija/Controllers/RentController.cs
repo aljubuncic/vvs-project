@@ -33,6 +33,22 @@ namespace Burgija.Controllers
             _context = context;
         }
 
+        public double CalculateDiscount(Tool tool, int code, List<Discount> discounts) {
+            double toolPrice = tool.ToolType.Price;
+            double discountPrice;
+            for (int i = 0; i < discounts.Count; i++) {
+                if (code == discounts[i].Id) {
+                    if (DateTime.Now < discounts[i].StartOfDiscount || DateTime.Now > discounts[i].EndOfDiscount) {
+                        throw new InvalidOperationException();
+                    } else {
+                        discountPrice = toolPrice * (1 - discounts[i].Percent / 100);
+                        return discountPrice;
+                    }
+                }
+            }
+            throw new ArgumentException();
+        }
+
         /// <summary>
         /// Displays the rental history for the registered user.
         /// </summary>
