@@ -22,8 +22,7 @@ namespace Burgija.Controllers {
     // HomeController class is responsible for handling requests related to the home page and tool-related functionalities.
     public class HomeController : Controller {
         // Application database context for interacting with the underlying data store.
-        private readonly ApplicationDbContext _context;
-        private readonly IApplicationDbContext _context2;
+        private readonly IApplicationDbContext _context;
 
         // Pre-defined categories of tools.
         private string[] categories = {
@@ -50,12 +49,8 @@ namespace Burgija.Controllers {
         private readonly UserManager<IdentityUser<int>> _userManager;
 
         // Constructor that initializes the controller with the required dependencies.
-        public HomeController(ApplicationDbContext context, UserManager<IdentityUser<int>> userManager) {
-            _context = context;
-            _userManager = userManager;
-        }
         public HomeController(IApplicationDbContext context, UserManager<IdentityUser<int>> userManager) {
-            _context2 = context;
+            _context = context;
             _userManager = userManager;
         }
 
@@ -65,10 +60,10 @@ namespace Burgija.Controllers {
         public async Task<IActionResult> Index(string search, double? priceFrom, double? priceTo, string sortOptions) {
             // Check if no filters are applied, return all tool types.
             if (search == null && priceFrom == null && priceTo == null && sortOptions == null) {
-                return View(await _context2.ToolTypes.ToListAsync());
+                return View(await _context.ToolTypes.ToListAsync());
             }
 
-            List<ToolType> filterResults = await _context2.ToolTypes.ToListAsync();
+            List<ToolType> filterResults = await _context.ToolTypes.ToListAsync();
 
             // Search by tool type name.
             if (search != null) {
@@ -310,7 +305,7 @@ namespace Burgija.Controllers {
                     (review, tool) => new { Review = review, Tool = tool }
                 )
                 .Join(
-                    _context.Users,
+                    (_context as ApplicationDbContext).Users,
                     reviewAndTool => reviewAndTool.Review.UserId,
                     user => user.Id,
                     (reviewAndTool, user) => new { ReviewAndTool = reviewAndTool, User = user }
@@ -398,7 +393,7 @@ namespace Burgija.Controllers {
 
             // Retrieve rents associated with the user and the specified tool type
             var rents = await _context.Rent
-                .Join(_context.Users, r => r.UserId, u => u.Id, (rent, user) => new { Rent = rent, User = user })
+                .Join((_context as ApplicationDbContext).Users, r => r.UserId, u => u.Id, (rent, user) => new { Rent = rent, User = user })
                 .Join(_context.Tool, ru => ru.Rent.ToolId, t => t.Id, (ru, tool) => new { ru.Rent, ru.User, Tool = tool })
                 .Join(_context.ToolType, rt => rt.Tool.ToolTypeId, tt => tt.Id, (rt, toolType) => new { rt.Rent, rt.User, rt.Tool, ToolType = toolType })
                 .Where(result => result.ToolType.Id == toolTypeId && result.User.Id == userId)
@@ -421,7 +416,7 @@ namespace Burgija.Controllers {
             // Validate the review model
             if (ModelState.IsValid) {
                 // Add the review to the database
-                _context.Add(review);
+                (_context as ApplicationDbContext).Add(review);
                 await _context.SaveChangesAsync();
 
                 // Redirect to the "ToolDetails" view for the specified tool type
