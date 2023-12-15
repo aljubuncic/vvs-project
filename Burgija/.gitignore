@@ -1,4 +1,5 @@
 obj
 bin
 .vs
-
+../Burgija.Tests/bin/
+../Burgija.Tests/obj/
