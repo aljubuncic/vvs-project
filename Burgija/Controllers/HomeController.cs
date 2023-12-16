@@ -54,6 +54,35 @@ namespace Burgija.Controllers {
             _userManager = userManager;
         }
 
+        public List<ToolType> SuggestedTools(List<ToolType> history, List<ToolType> tools) {
+            if (history.Count == 0)
+                throw new ArgumentException();
+
+            List<ToolType> result = new List<ToolType>();
+            Dictionary<Category, int> map = new Dictionary<Category, int>();
+            for (int i = 0; i < history.Count; i++) {
+                if (map.ContainsKey(history[i].Category)) {
+                    map[history[i].Category]++;
+                } else {
+                    map[history[i].Category] = 1;
+                }
+            }
+
+            tools.RemoveAll(tool => history.Exists(historyTool => tool.Id == historyTool.Id));
+
+            foreach (var pair in map) {
+                double k = Math.Round(4.0 * pair.Value / history.Count);
+                for (int i = 0; i < k && result.Count < 4; i++) {
+                    List<ToolType> filteredList = tools.FindAll(el => el.Category == pair.Key && !result.Exists(x => x.Id == el.Id));
+                    if (filteredList.Count == 0)
+                        throw new ArgumentException();
+                    result.Add(filteredList[new Random().Next(0, filteredList.Count)]);
+                }
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Displays the home page with a list of tool types based on search, price range, and sorting options.
         /// </summary>
