@@ -26,11 +26,8 @@ namespace Burgija.Tests
         public void Setup()
         {
             dbContextMock = new Mock<IApplicationDbContext>();
-            controller = new RentController(dbContextMock.Object);
+            controller = new RentController(null);
         }
-
-        
-
 
         [TestMethod]
         public async Task Create_WhenToolTypeIdIsNull_ReturnsNotFound()
@@ -44,8 +41,9 @@ namespace Burgija.Tests
             // Assert
             Assert.IsInstanceOfType(actualResult, typeof(NotFoundResult));
         }
+
         [TestMethod]
-        public async Task Create_ValidRent_RedirectsToRentHistory()
+        public async Task Create_ValidRentDates_RedirectsToRentHistory()
         {
             // Arrange
             var rent = new Rent { StartOfRent = DateTime.Now.AddDays(1), EndOfRent = DateTime.Now.AddDays(3) };
@@ -75,6 +73,7 @@ namespace Burgija.Tests
             var badRequestResult = (BadRequestObjectResult)result;
             Assert.AreEqual("Date of return is earlier than date of taking", badRequestResult.Value.ToString());
         }
+
         [TestMethod]
         public async Task Create_StartRentBeforeNow_ReturnsBadRequest()
         {
@@ -90,11 +89,6 @@ namespace Burgija.Tests
             var badRequestResult = (BadRequestObjectResult)result;
             Assert.AreEqual("Date of taking or date of return is earlier than today", badRequestResult.Value.ToString());
         }
-
-
-
-
-
 
         [TestMethod]
         public void GetToolType_Null_ReturnsNotFoundResult()
@@ -133,10 +127,8 @@ namespace Burgija.Tests
         }
 
         [TestMethod]
-        public async void RentHistory_User_ReturnsViewResultWithRents()
+        public async Task RentHistory_User_ReturnsViewResultWithRents()
         {
-
-
             Assert.AreEqual(true, true);
         }
 
