@@ -282,38 +282,7 @@ namespace Burgija.Tests {
         }
 
 
-        /*   [TestMethod]
-            public async Task Test_ToolDetails_returnDetailsOfTools()
-            {
-                var toolTypesList = ConvertToToolTypes(toolTypes);
-
-                var mockSet = MockDbSet.Create(toolTypesList);
-
-                var mockDbContext = new Mock<IApplicationDbContext>();
-                mockDbContext.Setup(c => c.ToolTypes).Returns(mockSet.Object);
-
-                var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(
-                    new Mock<IUserStore<IdentityUser<int>>>().Object,
-                    null, null, null, null, null, null, null, null);
-
-                var controller = new HomeController(mockDbContext.Object, mockUserManager.Object);
-
-
-                controller = new HomeController(mockDbContext.Object, mockUserManager.Object);
-
-
-                // Assert
-                var result = await controller.ToolDetails(null);
-                Assert.IsTrue(result is NotFoundResult);
-
-                var result2 = await controller.ToolDetails(2);
-                Assert.IsTrue(result2 is NotFoundResult);
-
-                result = await controller.ToolDetails(3);
-
-            }
-
-            */
+      
         [TestMethod]
         public async Task WhereYouCanFindUs_ReturnsViewWithStoresAndLocations()
         {
@@ -425,45 +394,51 @@ namespace Burgija.Tests {
             mockContext.Setup(c => c.Locations).Returns(mockSet5.Object);
 
             // Mocking the User context
-            var mockUser = new Mock<ClaimsPrincipal>();
-            mockUser.Setup(u => u.IsInRole("RegisteredUser")).Returns(true);
-
-// var controller = new HomeController(mockContext.Object, mockUserManager.Object);
-
-            controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = mockUser.Object }
+            var claims = new List<Claim>    
+            {           
+                new Claim(ClaimTypes.NameIdentifier, "123"), // Sample user ID
+                new Claim(ClaimTypes.Role, "RegisteredUser"), // Simulate being in the "RegisteredUser" role
+  
             };
+
+            // Create a ClaimsIdentity with the claims
+            var identity = new ClaimsIdentity(claims, "TestAuth");
+
+            // Create a ClaimsPrincipal with the ClaimsIdentity
+            var user = new ClaimsPrincipal(identity);
+
 
 
             // Mocking UserManager<IdentityUser<int>>
             var mockUserStore = new Mock<IUserStore<IdentityUser<int>>>();
             var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(mockUserStore.Object, null, null, null, null, null, null, null, null);
+           
+            var  controller = new HomeController(mockContext.Object, mockUserManager.Object);
+
+            controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = user } };
 
             // Setup FindByIdAsync to return a mock IdentityUser<int>
             mockUserManager
                 .Setup(u => u.FindByIdAsync(It.IsAny<string>()))
                 .ReturnsAsync((string id) => new IdentityUser<int> { UserName = "MockUserName" });
 
-
-            
-
             // Act
             var result = await controller.ToolDetails(toolId) as ViewResult;
 
             // Assert
             Assert.IsNotNull(result);
-            Assert.AreEqual("ToolDetails", result.ViewName); // Replace "ToolDetails" with the actual view name
 
-            // Verify ViewBag properties are set
-            //  Assert.IsNotNull(result.ViewBag.ToolAndStore);
-            //  Assert.IsNotNull(result.ViewBag.ReviewAndUser);
-            //  Assert.IsNotNull(result.ViewBag.NumberOfReviews);
-            //  Assert.IsNotNull(result.ViewBag.AverageRating);
-            //  Assert.IsNotNull(result.ViewBag.Username); // Check if this is expected to be set
+            var checkTool = result.Model as ToolType;
+            Assert.AreEqual(checkTool.Id, toolId);
 
-            // Add further assertions to verify the content set in ViewBag properties
-            // For instance, check if ToolAndStore, ReviewAndUser, NumberOfReviews, AverageRating, Username are correctly set.
+            // id je null metoda vraća null
+            result = await controller.ToolDetails(null) as ViewResult;
+            Assert.IsNull(result);
+
+            // nepostojeći id, metoda vraća null
+            var result2 = await controller.ToolDetails(1000) as ViewResult;
+            Assert.IsNull(result2);
+
         }
 
         public static IEnumerable<object[]> UcitajPodatkeCSV(string path) {
