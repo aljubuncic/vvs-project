@@ -19,11 +19,10 @@ using Humanizer;
 using Burgija.Interfaces;
 using System.Threading.Tasks;
 using System;
+using Newtonsoft.Json;
 
-namespace Burgija.Tests
-{
-    public class TestDbContext : DbContext
-    {
+namespace Burgija.Tests {
+    public class TestDbContext : DbContext {
         public TestDbContext(DbContextOptions<TestDbContext> options) : base(options) { }
 
         public DbSet<ToolType> ToolType { get; set; } // Add DbSet for ToolType (assuming ToolType is your model entity)
@@ -31,32 +30,68 @@ namespace Burgija.Tests
     }
 
     [TestClass]
-    public class HomeControllerTests
-    {
+    public class HomeControllerTests {
         private HomeController controller;
         private Mock<IApplicationDbContext> mockDbContext;
         private ApplicationDbContext mockContext;
 
 
         [TestInitialize]
-        public void SetUp()
-        {
+        public void SetUp() {
             controller = new HomeController(null, null);
             mockDbContext = new Mock<IApplicationDbContext>();
         }
 
-        static IEnumerable<object[]> toolTypes
-        {
-            get
-            {
+        public static IEnumerable<object[]> toolTypesJson {
+            get {
+                string jsonFilePath = "tools.json";
+                string jsonData = File.ReadAllText(jsonFilePath);
+                var testData = JsonConvert.DeserializeObject<List<List<ToolType>>>(jsonData);
+
+                foreach (var list in testData) {
+                    yield return new object[] { list };
+                }
+            }
+        }
+        [TestMethod]
+        [DynamicData(nameof(toolTypesJson))]
+        public void QuickSort(List<ToolType> tools) {
+            // Arrange
+            bool sorted = true;
+            // Act
+            List<ToolType> sortedTools = tools;
+            HomeController.QuickSort(sortedTools);
+            // Assert
+            for (int i = 1; i < sortedTools.Count; i++)
+                if (sortedTools[i].Price < sortedTools[i - 1].Price)
+                    sorted = false;
+            Assert.AreEqual(true, sorted);
+        }
+
+        [TestMethod]
+        [DynamicData(nameof(toolTypesJson))]
+        public void SelectionSort(List<ToolType> tools) {
+            // Arrange
+            bool sorted = true;
+            // Act
+            List<ToolType> sortedTools = tools;
+            HomeController.SelectionSortDescending(sortedTools);
+            // Assert
+            for (int i = 1; i < sortedTools.Count; i++)
+                if (sortedTools[i].Price > sortedTools[i - 1].Price)
+                    sorted = false;
+            Assert.AreEqual(true, sorted);
+        }
+
+        static IEnumerable<object[]> toolTypes {
+            get {
                 return UcitajPodatkeCSV("alati.csv");
             }
         }
 
 
         [TestMethod]
-        public async Task Test_Index_returnAllAlati()
-        {
+        public async Task Test_Index_returnAllAlati() {
 
             // Create a mock DbSet using the MockDbSet class
             var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
@@ -80,8 +115,7 @@ namespace Burgija.Tests
             Assert.AreEqual(4, (result.Model as List<ToolType>).Count);
         }
         [TestMethod]
-        public async Task Test_Index_returnSearch()
-        {
+        public async Task Test_Index_returnSearch() {
 
             // Create a mock DbSet using the MockDbSet class
             var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
@@ -110,8 +144,7 @@ namespace Burgija.Tests
             Assert.IsTrue(check[0].Price >= 5 && check[0].Price <= 15);
         }
         [TestMethod]
-        public async Task Test_Index_returnPriceFilteredAlatiByLowestPrice()
-        {
+        public async Task Test_Index_returnPriceFilteredAlatiByLowestPrice() {
 
             // Create a mock DbSet using the MockDbSet class
             var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
@@ -144,8 +177,7 @@ namespace Burgija.Tests
         }
 
         [TestMethod]
-        public async Task Test_Index_returnPriceFilteredAlatiByHighestPrice()
-        {
+        public async Task Test_Index_returnPriceFilteredAlatiByHighestPrice() {
 
             // Create a mock DbSet using the MockDbSet class
             var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
@@ -178,8 +210,7 @@ namespace Burgija.Tests
         }
 
         [TestMethod]
-        public async Task Test_Index_returnPriceFilteredAlatiByName()
-        {
+        public async Task Test_Index_returnPriceFilteredAlatiByName() {
 
             // Create a mock DbSet using the MockDbSet class
             var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
@@ -212,14 +243,11 @@ namespace Burgija.Tests
         }
 
 
-        public static IEnumerable<object[]> UcitajPodatkeCSV(string path)
-        {
+        public static IEnumerable<object[]> UcitajPodatkeCSV(string path) {
             using (var reader = new StreamReader(path))
-            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-            {
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture)) {
                 var rows = csv.GetRecords<dynamic>();
-                foreach (var row in rows)
-                {
+                foreach (var row in rows) {
                     var values = ((IDictionary<String, Object>)row).Values;
                     var elements = values.Select(elem => elem.ToString()).ToList();
                     yield return new object[] { elements[0], elements[1],elements[2],
@@ -230,15 +258,12 @@ namespace Burgija.Tests
             }
         }
 
-        public List<ToolType> ConvertToToolTypes(IEnumerable<object[]> toolTypeData)
-        {
+        public List<ToolType> ConvertToToolTypes(IEnumerable<object[]> toolTypeData) {
             List<ToolType> toolTypes = new List<ToolType>();
 
-            foreach (var row in toolTypeData)
-            {
+            foreach (var row in toolTypeData) {
                 // Assuming the columns in the IEnumerable<object[]> match the properties of ToolType
-                var toolType = new ToolType
-                {
+                var toolType = new ToolType {
                     Id = Convert.ToInt32(row[0]),
                     Name = row[1].ToString(),
                     Category = (Category)Enum.Parse(typeof(Category), row[2].ToString()),

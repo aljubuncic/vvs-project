@@ -221,7 +221,7 @@ namespace Burgija.Controllers {
         /// </summary>
         /// <param name="list">The list of tool types to be sorted.</param>
         /// <returns>The sorted list of tool types.</returns>
-        private static List<ToolType> MergeSort(List<ToolType> list) {
+        public static List<ToolType> MergeSort(List<ToolType> list) {
             if (list.Count <= 1)
                 return list;
 
@@ -266,7 +266,7 @@ namespace Burgija.Controllers {
         /// Sorts a list of tool types using the QuickSort algorithm.
         /// </summary>
         /// <param name="toolTypes">The list of tool types to be sorted.</param>
-        private static void QuickSort(List<ToolType> toolTypes) {
+        public static void QuickSort(List<ToolType> toolTypes) {
             QuickSort(toolTypes, 0, toolTypes.Count - 1);
         }
 
@@ -323,7 +323,7 @@ namespace Burgija.Controllers {
         /// Sorts a list of tool types in descending order using the Selection Sort algorithm.
         /// </summary>
         /// <param name="toolTypes">The list of tool types to be sorted.</param>
-        private static void SelectionSortDescending(List<ToolType> toolTypes) {
+        public static void SelectionSortDescending(List<ToolType> toolTypes) {
             int n = toolTypes.Count;
 
             for (int i = 0; i < n - 1; i++) {
