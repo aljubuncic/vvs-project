@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using System;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using Xunit.Sdk;
 
 namespace Burgija.Tests
 {

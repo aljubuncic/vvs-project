@@ -349,28 +349,31 @@ namespace Burgija.Controllers {
         /// </summary>
         /// <param name="id">The ID of the tool type to display details for.</param>
         /// <returns>Returns a view containing details of the specified tool type.</returns>
-        public async Task<IActionResult> ToolDetails(int? id) {
-            if (id == null) {
+        public async Task<IActionResult> ToolDetails(int? id)
+        {
+            if (id == null)
+            {
                 return NotFound();
             }
 
+            List<ToolType> allTools = await _context.ToolTypes.ToListAsync();
             // Retrieve the tool type with the specified ID
-            var toolType = await _context.ToolType.FirstOrDefaultAsync(m => m.Id == id);
-
-            if (toolType == null) {
+            var toolType = allTools.Find(x => x.Id == id);
+            if (toolType == null)
+            {
                 return NotFound();
             }
 
             // Retrieve reviews and users associated with the tool type
-            var reviewsAndUsers = await _context.Review
+            var reviewsAndUsers = await _context.Reviews
                 .Join(
-                    _context.Tool,
+                    _context.Tools,
                     review => review.ToolId,
                     tool => tool.Id,
                     (review, tool) => new { Review = review, Tool = tool }
                 )
                 .Join(
-                    (_context as ApplicationDbContext).Users,
+                    (_context as IApplicationDbContext).Users,
                     reviewAndTool => reviewAndTool.Review.UserId,
                     user => user.Id,
                     (reviewAndTool, user) => new { ReviewAndTool = reviewAndTool, User = user }
@@ -384,10 +387,10 @@ namespace Burgija.Controllers {
                 .ToListAsync();
 
             // Retrieve tool and store information associated with the tool type
-            var toolAndStores = await _context.Tool
-                .Join(_context.Store, t => t.StoreId, s => s.Id, (t, s) => new { Tool = t, Store = s })
-                .Join(_context.Location, ts => ts.Store.LocationId, l => l.Id, (ts, l) => new { ts.Tool, ts.Store, Location = l })
-                .Join(_context.ToolType, tsl => tsl.Tool.ToolTypeId, tt => tt.Id, (tsl, tt) => new { tsl.Tool, tsl.Store, tsl.Location, ToolType = tt })
+            var toolAndStores = await _context.Tools
+                .Join(_context.Stores, t => t.StoreId, s => s.Id, (t, s) => new { Tool = t, Store = s })
+                .Join(_context.Locations, ts => ts.Store.LocationId, l => l.Id, (ts, l) => new { ts.Tool, ts.Store, Location = l })
+                .Join(_context.ToolTypes, tsl => tsl.Tool.ToolTypeId, tt => tt.Id, (tsl, tt) => new { tsl.Tool, tsl.Store, tsl.Location, ToolType = tt })
                 .Where(result => result.ToolType.Id == toolType.Id)
                 .GroupBy(result => new { result.Location.Address, result.Store.Id })
                 .Select(group => new ToolAndStore
@@ -409,7 +412,8 @@ namespace Burgija.Controllers {
                 ViewBag.AverageRating = 0;
 
             // Set the username if the user is in the "RegisteredUser" role
-            if (User.IsInRole("RegisteredUser")) {
+            if (User.IsInRole("RegisteredUser"))
+            {
                 var userId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var user = await _userManager.FindByIdAsync(userId.ToString());
                 if (user != null)
@@ -425,17 +429,18 @@ namespace Burgija.Controllers {
         /// Displays a view containing information about store locations.
         /// </summary>
         /// <returns>Returns a view containing information about store locations.</returns>
-        public async Task<IActionResult> WhereYouCanFindUs() {
+        public async Task<IActionResult> WhereYouCanFindUs()
+        {
             // Retrieve the list of stores and locations from the database
-            List<Store> stores = await _context.Store.ToListAsync();
-            List<Location> locations = await _context.Location.ToListAsync();
+            List<Store> stores = await _context.Stores.ToListAsync();
+            List<Location> locations = await _context.Locations.ToListAsync();
 
             // Set ViewBag properties for the view
             ViewBag.Store = stores;
             ViewBag.Location = locations;
 
             // Return the view with information about store locations
-            return View();
+            return View("FindUs");
         }
 
 
@@ -452,7 +457,8 @@ namespace Burgija.Controllers {
         /// </returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SendReview([Bind("Id")] Review review, int toolTypeId, string textbox, double rating) {
+        public async Task<IActionResult> SendReview([Bind("Id")] Review review, int toolTypeId, string textbox, double rating)
+        {
             // Retrieve the user ID from the claim
             var userId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
@@ -466,7 +472,8 @@ namespace Burgija.Controllers {
                 .ToListAsync();
 
             // Check if the user has rented the specified tool type
-            if (rents.Count == 0) {
+            if (rents.Count == 0)
+            {
                 return BadRequest("You have not rented this tool before!");
             }
 
@@ -479,14 +486,17 @@ namespace Burgija.Controllers {
             review.Rating = rating;
 
             // Validate the review model
-            if (ModelState.IsValid) {
+            if (ModelState.IsValid)
+            {
                 // Add the review to the database
                 (_context as ApplicationDbContext).Add(review);
                 await _context.SaveChangesAsync();
 
                 // Redirect to the "ToolDetails" view for the specified tool type
                 return RedirectToAction("ToolDetails", new { id = toolTypeId });
-            } else {
+            }
+            else
+            {
                 // Redirect to the "ToolDetails" view for the specified tool type with an error message
                 return RedirectToAction("ToolDetails", new { id = toolTypeId });
             }
