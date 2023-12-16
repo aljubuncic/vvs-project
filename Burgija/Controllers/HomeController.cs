@@ -83,13 +83,49 @@ namespace Burgija.Controllers {
             return result;
         }
 
+        public async Task<List<ToolType>> GetRentHistoryToolTypes()
+        {
+            try
+            {
+                // Extract the user ID from the claims associated with the current user
+                var userId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                // Query the database to retrieve rent history information
+                var rentHistory = await _context.Rent
+                    // Filter by the current user's ID
+                    .Where(r => r.UserId == userId)
+                    // Join the Rent table with the Tool table using the ToolId
+                    .Join(_context.Tool, rent => rent.ToolId, tool => tool.Id, (rent, tool) => new { Rent = rent, Tool = tool })
+                    // Join the result with the ToolType table using the ToolTypeId from the Tool table
+                    .Join(_context.ToolType, rt => rt.Tool.ToolTypeId, toolType => toolType.Id, (rt, toolType) => new RentAndToolType(rt.Rent, toolType))
+                    // Convert the result to a List asynchronously
+                    .ToListAsync();
+
+                return rentHistory.Select(rh => rh.ToolType).ToList();
+            }
+            catch(Exception ex)
+            {
+                return new List<ToolType>();
+            }
+            
+        }
+
         /// <summary>
         /// Displays the home page with a list of tool types based on search, price range, and sorting options.
         /// </summary>
         public async Task<IActionResult> Index(string search, double? priceFrom, double? priceTo, string sortOptions) {
             // Check if no filters are applied, return all tool types.
             if (search == null && priceFrom == null && priceTo == null && sortOptions == null) {
-                return View(await _context.ToolTypes.ToListAsync());
+                var toolTypes = await _context.ToolTypes.ToListAsync();
+                try
+                {
+                    var rentHistoryToolTypes = await GetRentHistoryToolTypes();
+                    ViewBag.SuggestedToolTypes = SuggestedTools(rentHistoryToolTypes, toolTypes);
+                }
+                catch(Exception)
+                {
+                    ViewBag.SuggestedToolTypes = new List<ToolType>();
+                }
+                return View(toolTypes);
             }
 
             List<ToolType> filterResults = await _context.ToolTypes.ToListAsync();
