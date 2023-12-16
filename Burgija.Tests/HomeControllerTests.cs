@@ -20,6 +20,8 @@ using System.Security.Claims;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using CsvHelper;
+using System.Xml.Serialization;
+using System.Xml;
 
 namespace Burgija.Tests {
     public class TestDbContext : DbContext {
@@ -53,6 +55,7 @@ namespace Burgija.Tests {
                 }
             }
         }
+
         [TestMethod]
         [DynamicData(nameof(toolTypesJson))]
         public void QuickSort(List<ToolType> tools) {
@@ -82,6 +85,42 @@ namespace Burgija.Tests {
                     sorted = false;
             Assert.AreEqual(true, sorted);
         }
+        public static IEnumerable<object[]> toolTypesXml {
+            get {
+                XmlDocument doc = new XmlDocument();
+                doc.Load("tools.xml");
+                foreach (XmlNode xmlList in doc.DocumentElement.ChildNodes) {
+                    List<ToolType> tools = new List<ToolType>();
+                    foreach (XmlNode xmlTool in xmlList.ChildNodes) {
+                        ToolType tool = new ToolType();
+                        tool.Id = int.Parse(xmlTool.SelectSingleNode("Id").InnerText);
+                        tool.Name = xmlTool.SelectSingleNode("Name").InnerText;
+                        tool.Category = (Category) int.Parse(xmlTool.SelectSingleNode("Category").InnerText);
+                        tool.Price = int.Parse(xmlTool.SelectSingleNode("Price").InnerText);
+                        tool.Description = xmlTool.SelectSingleNode("Description").InnerText;
+                        tool.Image = xmlTool.SelectSingleNode("Image").InnerText;
+                        tools.Add(tool);
+                    }
+                    yield return new object[] { tools };
+                }
+            }
+        }
+
+
+        [TestMethod]
+        [DynamicData(nameof(toolTypesXml))]
+        public void MergeSort(List<ToolType> tools) {
+            // Arrange
+            bool sorted = true;
+            // Act
+            List<ToolType> sortedTools = HomeController.MergeSort(tools);
+            // Assert
+            for (int i = 1; i < sortedTools.Count; i++)
+                if (sortedTools[i].Name.CompareTo(sortedTools[i - 1].Name) < 0)
+                    sorted = false;
+            Assert.AreEqual(true, sorted);
+        }
+
 
         static IEnumerable<object[]> toolTypes {
             get {
@@ -243,8 +282,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public async Task Test_Method_returnFilteredTools()
-        {
+        public async Task Test_Method_returnFilteredTools() {
 
             // Create a mock DbSet using the MockDbSet class
             var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
@@ -315,8 +353,7 @@ namespace Burgija.Tests {
 
             */
         [TestMethod]
-        public async Task WhereYouCanFindUs_ReturnsViewWithStoresAndLocations()
-        {
+        public async Task WhereYouCanFindUs_ReturnsViewWithStoresAndLocations() {
             var stores = new List<Store>
         {
             new Store(1, new Location(1, 40.7128, -74.0060, "New York City")),
@@ -360,20 +397,17 @@ namespace Burgija.Tests {
             Assert.AreEqual(locations.Count, checkLocations.Count);
 
             // Compare individual elements or properties
-            for (var i = 0; i < stores.Count; i++)
-            {
+            for (var i = 0; i < stores.Count; i++) {
                 Assert.AreEqual(stores[i].Id, checkStores[i].Id);
             }
 
-            for (var i = 0; i < locations.Count; i++)
-            {
+            for (var i = 0; i < locations.Count; i++) {
                 Assert.AreEqual(locations[i].Address, checkLocations[i].Address);
             }
         }
 
         [TestMethod]
-        public async Task ToolDetails_ReturnsCorrectView()
-        {
+        public async Task ToolDetails_ReturnsCorrectView() {
             var toolTypesList = ConvertToToolTypes(toolTypes);
 
             // For Users
@@ -392,7 +426,7 @@ namespace Burgija.Tests {
             var tool1 = new Tool(1, toolTypesList[0], store1);
             var tool2 = new Tool(2, toolTypesList[1], store2);
 
-            var rent1 = new Rent(1, user1, 1, tool1, 1,DateTime.Now, DateTime.Now.AddDays(10), null, null,25.00);
+            var rent1 = new Rent(1, user1, 1, tool1, 1, DateTime.Now, DateTime.Now.AddDays(10), null, null, 25.00);
             var rent2 = new Rent(2, user1, 1, tool2, 2, DateTime.Now, DateTime.Now.AddDays(10), null, null, 27.00);
 
             // For Reviews
@@ -428,10 +462,9 @@ namespace Burgija.Tests {
             var mockUser = new Mock<ClaimsPrincipal>();
             mockUser.Setup(u => u.IsInRole("RegisteredUser")).Returns(true);
 
-// var controller = new HomeController(mockContext.Object, mockUserManager.Object);
+            // var controller = new HomeController(mockContext.Object, mockUserManager.Object);
 
-            controller.ControllerContext = new ControllerContext
-            {
+            controller.ControllerContext = new ControllerContext {
                 HttpContext = new DefaultHttpContext { User = mockUser.Object }
             };
 
@@ -446,7 +479,7 @@ namespace Burgija.Tests {
                 .ReturnsAsync((string id) => new IdentityUser<int> { UserName = "MockUserName" });
 
 
-            
+
 
             // Act
             var result = await controller.ToolDetails(toolId) as ViewResult;
