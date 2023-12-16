@@ -3,12 +3,18 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Threading.Tasks;
 using System.Threading;
 using Burgija.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace Burgija.Interfaces
 {
     public interface IApplicationDbContext
     {
         DbSet<ToolType> ToolTypes { get; set; }
+        DbSet<Store> Stores { get; set; }
+        DbSet<Location> Locations { get; set; }
+        DbSet<Tool> Tools { get; set; }
+        DbSet<Review> Reviews { get; set; }
+        DbSet<IdentityUser<int>> Users { get; set; }
 
         public DbSet<Administrator> Administrator { get; set; }
         public DbSet<Courier> Courier { get; set; }

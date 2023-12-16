@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Burgija.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<IdentityUser<int>,IdentityRole<int>,int>,IApplicationDbContext
+    public class ApplicationDbContext : IdentityDbContext<IdentityUser<int>, IdentityRole<int>, int>, IApplicationDbContext
     {
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
@@ -30,7 +30,11 @@ namespace Burgija.Data
         public DbSet<Tool> Tool { get; set; }
         public DbSet<ToolType> ToolType { get; set; }
         public DbSet<ToolType> ToolTypes { get; set; }
-
+        public DbSet<Tool> Tools { get; set; }
+        public DbSet<Store> Stores { get; set; }
+        public DbSet<Location> Locations { get; set; }
+        public DbSet<Review> Reviews { get; set; }
+        public DbSet<IdentityUser<int>> Users { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.Entity<Administrator>().ToTable(nameof(Administrator));
