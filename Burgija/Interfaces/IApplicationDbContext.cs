@@ -32,5 +32,7 @@ namespace Burgija.Interfaces
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
         DbSet<TEntity> Set<TEntity>() where TEntity : class;
         EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
+        EntityEntry<TEntity> Add<TEntity>(TEntity entity) where TEntity : class;
+        
     }
 }

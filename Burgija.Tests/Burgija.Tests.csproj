@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
@@ -6,16 +6,27 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>4</WarningLevel>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <WarningLevel>4</WarningLevel>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
-	  <PackageReference Include="CsvHelper" Version="30.0.1" />
-	  <PackageReference Include="Fluent.Infrastructure" Version="2.0.0-beta-01" />
-	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
-	  <PackageReference Include="Moq" Version="4.20.70" />
-	  <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
-	  <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
-	  <PackageReference Include="coverlet.collector" Version="3.2.0" />
-	  <PackageReference Include="xunit.extensibility.core" Version="2.6.3" />
-	  <PackageReference Include="xunit.extensibility.execution" Version="2.6.3" />
+    <None Remove="C:\Users\ahmed\.nuget\packages\microsoft.net.compilers\1.0.0\build\..\tools\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="30.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+	<PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
+    
   </ItemGroup>
 
   <ItemGroup>

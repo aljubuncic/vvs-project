@@ -373,7 +373,7 @@ namespace Burgija.Controllers {
                     (review, tool) => new { Review = review, Tool = tool }
                 )
                 .Join(
-                    (_context as IApplicationDbContext).Users,
+                    _context.Users,
                     reviewAndTool => reviewAndTool.Review.UserId,
                     user => user.Id,
                     (reviewAndTool, user) => new { ReviewAndTool = reviewAndTool, User = user }
@@ -489,7 +489,7 @@ namespace Burgija.Controllers {
             if (ModelState.IsValid)
             {
                 // Add the review to the database
-                (_context as ApplicationDbContext).Add(review);
+                _context.Add(review);
                 await _context.SaveChangesAsync();
 
                 // Redirect to the "ToolDetails" view for the specified tool type

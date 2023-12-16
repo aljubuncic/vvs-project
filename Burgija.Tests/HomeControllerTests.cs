@@ -1,13 +1,13 @@
 ﻿using Burgija.Controllers;
 using Burgija.Models;
-using CsvHelper;
+
 using System.Globalization;
 using Microsoft.AspNetCore.Identity;
-using Moq;
+
 using Burgija.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -17,7 +17,9 @@ using System;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
-using Xunit.Sdk;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
+using CsvHelper;
 
 namespace Burgija.Tests {
     public class TestDbContext : DbContext {
