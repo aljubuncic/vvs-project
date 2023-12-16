@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Collections;
 using Microsoft.AspNetCore.Http;
 using Burgija.ViewModels;
+using Burgija.Interfaces;
 
 namespace Burgija.Controllers
 {
@@ -22,13 +23,13 @@ namespace Burgija.Controllers
     public class RentController : Controller
     {
         ///Application database context
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RentController"/> class.
         /// </summary>
         /// <param name="context">The application database context.</param>
-        public RentController(ApplicationDbContext context)
+        public RentController(IApplicationDbContext context)
         {
             _context = context;
         }
