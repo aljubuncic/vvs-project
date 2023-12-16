@@ -5,20 +5,17 @@ using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Moq;
 using Burgija.Data;
-using Castle.Core.Logging;
 using Microsoft.AspNetCore.Mvc;
-using Xunit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.IO;
-using System.Xml.Linq;
-using Humanizer;
 using Burgija.Interfaces;
 using System.Threading.Tasks;
 using System;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace Burgija.Tests
 {
@@ -128,7 +125,7 @@ namespace Burgija.Tests
             controller = new HomeController(mockDbContext.Object, mockUserManager.Object);
 
             // Act
-            var result = await controller.Index(null, 5, 10, "lowest price") as ViewResult;
+            var result = await controller.Index(null, 5, 10, "lowestPrice") as ViewResult;
 
             // Assert
             Assert.IsNotNull(result);
@@ -211,6 +208,229 @@ namespace Burgija.Tests
             CollectionAssert.AreEqual(check, result.Model as List<ToolType>);
         }
 
+        [TestMethod]
+        public async Task Test_Method_returnFilteredTools()
+        {
+
+            // Create a mock DbSet using the MockDbSet class
+            var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
+
+            // Setup mock DbContext
+            var mockDbContext = new Mock<IApplicationDbContext>();
+            mockDbContext.Setup(c => c.ToolTypes).Returns(mockSet.Object);
+
+            // Create a mock mockUserManager using the Mock class
+            var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(
+             new Mock<IUserStore<IdentityUser<int>>>().Object,
+              null, null, null, null, null, null, null, null);
+
+            controller = new HomeController(mockDbContext.Object, mockUserManager.Object);
+
+            // Act
+            var result = await controller.FilterTools(5, 55, "lowestPrice");
+
+            // Assert(<RedirectToActionResult>(result));
+            Assert.IsTrue(result is RedirectToActionResult, "Expected a RedirectToActionResult");
+            var redirectToActionResult = (RedirectToActionResult)result;
+
+            Assert.AreEqual("Index", redirectToActionResult.ActionName);
+            Assert.IsNotNull(redirectToActionResult.RouteValues);
+
+            // Verify the query parameters
+            Assert.IsTrue(redirectToActionResult.RouteValues.TryGetValue("priceFrom", out var priceFromValue));
+            Assert.AreEqual(5.ToString(), priceFromValue);
+
+            Assert.IsTrue(redirectToActionResult.RouteValues.TryGetValue("priceTo", out var priceToValue));
+            Assert.AreEqual(55.ToString(), priceToValue);
+
+            Assert.IsTrue(redirectToActionResult.RouteValues.TryGetValue("sortOptions", out var sortOptionsValue));
+            Assert.AreEqual("lowestPrice", sortOptionsValue);
+        }
+
+
+        /*   [TestMethod]
+            public async Task Test_ToolDetails_returnDetailsOfTools()
+            {
+                var toolTypesList = ConvertToToolTypes(toolTypes);
+
+                var mockSet = MockDbSet.Create(toolTypesList);
+
+                var mockDbContext = new Mock<IApplicationDbContext>();
+                mockDbContext.Setup(c => c.ToolTypes).Returns(mockSet.Object);
+
+                var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(
+                    new Mock<IUserStore<IdentityUser<int>>>().Object,
+                    null, null, null, null, null, null, null, null);
+
+                var controller = new HomeController(mockDbContext.Object, mockUserManager.Object);
+
+
+                controller = new HomeController(mockDbContext.Object, mockUserManager.Object);
+
+
+                // Assert
+                var result = await controller.ToolDetails(null);
+                Assert.IsTrue(result is NotFoundResult);
+
+                var result2 = await controller.ToolDetails(2);
+                Assert.IsTrue(result2 is NotFoundResult);
+
+                result = await controller.ToolDetails(3);
+
+            }
+
+            */
+        [TestMethod]
+        public async Task WhereYouCanFindUs_ReturnsViewWithStoresAndLocations()
+        {
+            var stores = new List<Store>
+        {
+            new Store(1, new Location(1, 40.7128, -74.0060, "New York City")),
+            new Store(2, new Location(2, 34.0522, -118.2437, "Los Angeles"))
+            // Add more stores as needed
+        };
+
+            var locations = new List<Location>
+        {
+            new Location(1, 40.7128, -74.0060, "New York City"),
+            new Location(2, 34.0522, -118.2437, "Los Angeles")
+            // Add more locations as needed
+        };
+
+            var mockSet = MockDbSet.Create(stores);
+            var mockSet2 = MockDbSet.Create(locations);
+
+            var mockDbContext = new Mock<IApplicationDbContext>();
+            mockDbContext.Setup(c => c.Stores).Returns(mockSet.Object);
+            mockDbContext.Setup(c => c.Locations).Returns(mockSet2.Object);
+
+            var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(
+                 new Mock<IUserStore<IdentityUser<int>>>().Object,
+                 null, null, null, null, null, null, null, null);
+
+
+            var controller = new HomeController(mockDbContext.Object, mockUserManager.Object);
+
+
+            // Act
+            var result = await controller.WhereYouCanFindUs() as ViewResult;
+            var checkStores = result.ViewData.Values.ElementAt(0) as List<Store>;
+            var checkLocations = result.ViewData.Values.ElementAt(1) as List<Location>;
+
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual("FindUs", result.ViewName);
+
+            // Check the count of stores and locations
+            Assert.AreEqual(stores.Count, checkStores.Count);
+            Assert.AreEqual(locations.Count, checkLocations.Count);
+
+            // Compare individual elements or properties
+            for (var i = 0; i < stores.Count; i++)
+            {
+                Assert.AreEqual(stores[i].Id, checkStores[i].Id);
+            }
+
+            for (var i = 0; i < locations.Count; i++)
+            {
+                Assert.AreEqual(locations[i].Address, checkLocations[i].Address);
+            }
+        }
+
+        [TestMethod]
+        public async Task ToolDetails_ReturnsCorrectView()
+        {
+            var toolTypesList = ConvertToToolTypes(toolTypes);
+
+            // For Users
+            var user1 = new IdentityUser<int> { Id = 1 };
+            var user2 = new IdentityUser<int> { Id = 2 };
+
+            // For Locations
+            var location1 = new Location(1, 40.7128, -74.0060, "New York City");
+            var location2 = new Location(2, 34.0522, -118.2437, "Los Angeles");
+
+            // For Stores
+            var store1 = new Store(1, location1);
+            var store2 = new Store(2, location2);
+
+            // For Tools
+            var tool1 = new Tool(1, toolTypesList[0], store1);
+            var tool2 = new Tool(2, toolTypesList[1], store2);
+
+            var rent1 = new Rent(1, user1, 1, tool1, 1,DateTime.Now, DateTime.Now.AddDays(10), null, null,25.00);
+            var rent2 = new Rent(2, user1, 1, tool2, 2, DateTime.Now, DateTime.Now.AddDays(10), null, null, 27.00);
+
+            // For Reviews
+            var review1 = new Review(1, user1, tool1, rent1, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), "Great tool!", 4.5);
+            var review2 = new Review(2, user2, tool2, rent2, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), "Good product.", 4.0);
+
+            // Create lists to hold the objects
+            var users = new List<IdentityUser<int>> { user1, user2 };
+            var locations = new List<Location> { location1, location2 };
+            var stores = new List<Store> { store1, store2 };
+            var tools = new List<Tool> { tool1, tool2 };
+            var reviews = new List<Review> { review1, review2 };
+
+            // Arrange
+            var toolId = 1; // Replace with the desired tool ID for testing
+
+            var mockSet = MockDbSet.Create(reviews);
+            var mockSet2 = MockDbSet.Create(users);
+            var mockSet3 = MockDbSet.Create(tools);
+            var mockSet4 = MockDbSet.Create(stores);
+            var mockSet5 = MockDbSet.Create(locations);
+            var mockSet6 = MockDbSet.Create(toolTypesList);
+
+            var mockContext = new Mock<IApplicationDbContext>();
+            mockContext.Setup(c => c.ToolTypes).Returns(mockSet6.Object);
+            mockContext.Setup(c => c.Reviews).Returns(mockSet.Object);
+            mockContext.Setup(c => c.Users).Returns(mockSet2.Object);
+            mockContext.Setup(c => c.Tools).Returns(mockSet3.Object);
+            mockContext.Setup(c => c.Stores).Returns(mockSet4.Object);
+            mockContext.Setup(c => c.Locations).Returns(mockSet5.Object);
+
+            // Mocking the User context
+            var mockUser = new Mock<ClaimsPrincipal>();
+            mockUser.Setup(u => u.IsInRole("RegisteredUser")).Returns(true);
+
+            var controller = new HomeController(mockContext.Object, mockUserManager.Object);
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = mockUser.Object }
+            };
+
+
+            // Mocking UserManager<IdentityUser<int>>
+            var mockUserStore = new Mock<IUserStore<IdentityUser<int>>>();
+            var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(mockUserStore.Object, null, null, null, null, null, null, null, null);
+
+            // Setup FindByIdAsync to return a mock IdentityUser<int>
+            mockUserManager
+                .Setup(u => u.FindByIdAsync(It.IsAny<string>()))
+                .ReturnsAsync((string id) => new IdentityUser<int> { UserName = "MockUserName" });
+
+
+            
+
+            // Act
+            var result = await controller.ToolDetails(toolId) as ViewResult;
+
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual("ToolDetails", result.ViewName); // Replace "ToolDetails" with the actual view name
+
+            // Verify ViewBag properties are set
+            //  Assert.IsNotNull(result.ViewBag.ToolAndStore);
+            //  Assert.IsNotNull(result.ViewBag.ReviewAndUser);
+            //  Assert.IsNotNull(result.ViewBag.NumberOfReviews);
+            //  Assert.IsNotNull(result.ViewBag.AverageRating);
+            //  Assert.IsNotNull(result.ViewBag.Username); // Check if this is expected to be set
+
+            // Add further assertions to verify the content set in ViewBag properties
+            // For instance, check if ToolAndStore, ReviewAndUser, NumberOfReviews, AverageRating, Username are correctly set.
+        }
 
         public static IEnumerable<object[]> UcitajPodatkeCSV(string path)
         {
