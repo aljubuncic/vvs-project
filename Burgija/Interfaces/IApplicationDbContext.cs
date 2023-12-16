@@ -16,6 +16,8 @@ namespace Burgija.Interfaces
         DbSet<Review> Reviews { get; set; }
         DbSet<IdentityUser<int>> Users { get; set; }
 
+        DbSet<Rent> Rents { get; set; }
+
         public DbSet<Administrator> Administrator { get; set; }
         public DbSet<Courier> Courier { get; set; }
         public DbSet<Delivery> Delivery { get; set; }

@@ -90,13 +90,13 @@ namespace Burgija.Controllers {
                 // Extract the user ID from the claims associated with the current user
                 var userId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 // Query the database to retrieve rent history information
-                var rentHistory = await _context.Rent
+                var rentHistory = await _context.Rents
                     // Filter by the current user's ID
                     .Where(r => r.UserId == userId)
                     // Join the Rent table with the Tool table using the ToolId
-                    .Join(_context.Tool, rent => rent.ToolId, tool => tool.Id, (rent, tool) => new { Rent = rent, Tool = tool })
+                    .Join(_context.Tools, rent => rent.ToolId, tool => tool.Id, (rent, tool) => new { Rent = rent, Tool = tool })
                     // Join the result with the ToolType table using the ToolTypeId from the Tool table
-                    .Join(_context.ToolType, rt => rt.Tool.ToolTypeId, toolType => toolType.Id, (rt, toolType) => new RentAndToolType(rt.Rent, toolType))
+                    .Join(_context.ToolTypes, rt => rt.Tool.ToolTypeId, toolType => toolType.Id, (rt, toolType) => new RentAndToolType(rt.Rent, toolType))
                     // Convert the result to a List asynchronously
                     .ToListAsync();
 
@@ -463,10 +463,10 @@ namespace Burgija.Controllers {
             var userId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
             // Retrieve rents associated with the user and the specified tool type
-            var rents = await _context.Rent
-                .Join((_context as ApplicationDbContext).Users, r => r.UserId, u => u.Id, (rent, user) => new { Rent = rent, User = user })
-                .Join(_context.Tool, ru => ru.Rent.ToolId, t => t.Id, (ru, tool) => new { ru.Rent, ru.User, Tool = tool })
-                .Join(_context.ToolType, rt => rt.Tool.ToolTypeId, tt => tt.Id, (rt, toolType) => new { rt.Rent, rt.User, rt.Tool, ToolType = toolType })
+            var rents = await _context.Rents
+                .Join((_context as IApplicationDbContext).Users, r => r.UserId, u => u.Id, (rent, user) => new { Rent = rent, User = user })
+                .Join(_context.Tools, ru => ru.Rent.ToolId, t => t.Id, (ru, tool) => new { ru.Rent, ru.User, Tool = tool })
+                .Join(_context.ToolTypes, rt => rt.Tool.ToolTypeId, tt => tt.Id, (rt, toolType) => new { rt.Rent, rt.User, rt.Tool, ToolType = toolType })
                 .Where(result => result.ToolType.Id == toolTypeId && result.User.Id == userId)
                 .Select(result => result.Rent)
                 .ToListAsync();
