@@ -181,17 +181,21 @@ namespace Burgija.Controllers {
         /// <param name="search">The search term.</param>
         /// <returns>A list of tool types matching the search term.</returns>
         public static List<ToolType> LinearSearch(List<ToolType> toolTypes, string search) {
-            if (string.IsNullOrWhiteSpace(search)) {
+            if (search==null) {
                 return new List<ToolType>();
+            }
+            if (string.IsNullOrWhiteSpace(search))
+            {
+                return new List<ToolType>();    
             }
 
             search = search.ToLower(); // Convert search to lowercase for case-insensitive search
 
             List<ToolType> results = new List<ToolType>();
 
-            foreach (var toolType in toolTypes) {
-                if (toolType.Name.ToLower().Contains(search)) {
-                    results.Add(toolType);
+            for (int i = 0; i<toolTypes.Count;i++) {
+                if (toolTypes[i].Name.ToLower().Contains(search)) {
+                    results.Add(toolTypes[i]);
                 }
             }
 

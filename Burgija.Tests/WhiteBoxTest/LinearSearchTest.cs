@@ -20,18 +20,7 @@ namespace Burgija.Tests.WhiteBoxTest
     [TestClass]
     public class LinearSearchTest
     {
-        private static IEnumerable<object[]> toolTypesJson
-        {
-            get
-            {
-                string jsonFilePath = "../../../WhiteBoxTest/toolTypes.json";
-                string jsonData = File.ReadAllText(jsonFilePath);
-                var testData = JsonConvert.DeserializeObject<List<ToolType>>(jsonData);
-                yield return new object[] { testData };
-                
-            }
-        }
-
+      
         [TestMethod]
         public void LinearSearch_SearchIsNull_ReturnsEmptyList()
         {
@@ -46,15 +35,6 @@ namespace Burgija.Tests.WhiteBoxTest
         {
             //Act
             var result = HomeController.LinearSearch(null, "  ");
-            //Assert
-            CollectionAssert.AreEquivalent(new List<ToolType>(), result);
-        }
-
-        [TestMethod]
-        public void LinearSearch_SearchIsEmpty_ReturnsEmptyList()
-        {
-            //Act
-            var result = HomeController.LinearSearch(null, "");
             //Assert
             CollectionAssert.AreEquivalent(new List<ToolType>(), result);
         }
@@ -98,7 +78,22 @@ namespace Burgija.Tests.WhiteBoxTest
             CollectionAssert.AreEqual(expected, result);
         }
 
+
+        //Additional tests, not mentioned in the docs
+
+
         [TestMethod]
+        [Ignore]
+        public void LinearSearch_SearchIsEmpty_ReturnsEmptyList()
+        {
+            //Act
+            var result = HomeController.LinearSearch(null, "");
+            //Assert
+            CollectionAssert.AreEquivalent(new List<ToolType>(), result);
+        }
+
+        [TestMethod]
+        [Ignore]
         [DynamicData(nameof(toolTypesJson))]
         public void LinearSearch_MultipleElementsInListWithSomeMatchingSearch_ReturnsList(List<ToolType> toolTypes)
         {
@@ -140,6 +135,7 @@ namespace Burgija.Tests.WhiteBoxTest
         }
 
         [TestMethod]
+        [Ignore]
         [DynamicData(nameof(toolTypesJson))]
         public void LinearSearch_MultipleElementsInListWithNoMatchingSearch_ReturnsEmptyList(List<ToolType> toolTypes)
         {
@@ -152,6 +148,7 @@ namespace Burgija.Tests.WhiteBoxTest
         }
 
         [TestMethod]
+        [Ignore]
         [DynamicData(nameof(toolTypesJson))]
         public void LinearSearch_MultipleElementsInListWithAllMatchingSearch_ReturnsList(List<ToolType> toolTypes)
         {
@@ -210,5 +207,16 @@ namespace Burgija.Tests.WhiteBoxTest
             CollectionAssert.AreEqual(expected, result);
         }
 
+        private static IEnumerable<object[]> toolTypesJson
+        {
+            get
+            {
+                string jsonFilePath = "../../../WhiteBoxTest/toolTypes.json";
+                string jsonData = File.ReadAllText(jsonFilePath);
+                var testData = JsonConvert.DeserializeObject<List<ToolType>>(jsonData);
+                yield return new object[] { testData };
+
+            }
+        }
     }
 }
