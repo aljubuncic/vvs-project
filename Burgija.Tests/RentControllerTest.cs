@@ -17,6 +17,8 @@ using CsvHelper;
 using System.Globalization;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
+using Burgija.ViewModels;
+using System.Security.Claims;
 
 namespace Burgija.Tests
 {
@@ -141,7 +143,96 @@ namespace Burgija.Tests
         [TestMethod]
         public async Task RentHistory_User_ReturnsViewResultWithRents()
         {
-            Assert.AreEqual(true, true);
+            // Arrange
+            var toolTypesList = ConvertToToolTypes(toolTypes);
+
+            // For Users
+            var user1 = new IdentityUser<int> { Id = 1 };
+            var user2 = new IdentityUser<int> { Id = 2 };
+
+            // For Locations
+            var location1 = new Location(1, 40.7128, -74.0060, "New York City");
+            var location2 = new Location(2, 34.0522, -118.2437, "Los Angeles");
+
+            // For Stores
+            var store1 = new Store(1, location1);
+            var store2 = new Store(2, location2);
+
+            // For Tools
+            var tool1 = new Tool(1, toolTypesList[0], store1);
+            var tool2 = new Tool(2, toolTypesList[1], store2);
+
+            var rent1 = new Rent(1, user1, 1, tool1, 1, DateTime.Now, DateTime.Now.AddDays(10), null, null, 25.00);
+            var rent2 = new Rent(2, user1, 1, tool2, 2, DateTime.Now, DateTime.Now.AddDays(10), null, null, 27.00);
+
+            // Create lists to hold the objects
+            var users = new List<IdentityUser<int>> { user1, user2 };
+            var locations = new List<Location> { location1, location2 };
+            var stores = new List<Store> { store1, store2 };
+            var tools = new List<Tool> { tool1, tool2 };
+
+            // Arrange
+
+            var mockSet2 = MockDbSet.Create(users);
+            var mockSet3 = MockDbSet.Create(tools);
+            var mockSet4 = MockDbSet.Create(stores);
+            var mockSet5 = MockDbSet.Create(locations);
+            var mockSet6 = MockDbSet.Create(toolTypesList);
+
+            var mockContext = new Mock<IApplicationDbContext>();
+            mockContext.Setup(c => c.Users).Returns(mockSet2.Object);
+            mockContext.Setup(c => c.Tools).Returns(mockSet3.Object);
+            mockContext.Setup(c => c.Stores).Returns(mockSet4.Object);
+            mockContext.Setup(c => c.Locations).Returns(mockSet5.Object);
+
+            // Mocking the User context
+            var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, "123"), // Sample user ID
+        new Claim(ClaimTypes.Role, "RegisteredUser"), // Simulate being in the "RegisteredUser" role
+    };
+
+            // Create a ClaimsIdentity with the claims
+            var identity = new ClaimsIdentity(claims, "TestAuth");
+
+            // Create a ClaimsPrincipal with the ClaimsIdentity
+            var user = new ClaimsPrincipal(identity);
+
+            // Mocking UserManager<IdentityUser<int>>
+            var mockUserStore = new Mock<IUserStore<IdentityUser<int>>>();
+            var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(mockUserStore.Object, null, null, null, null, null, null, null, null);
+            var mockRentSet = MockDbSet.Create(new List<Rent> { rent1, rent2 });
+            mockContext.Setup(c => c.Rent).Returns(mockRentSet.Object);
+
+            var mockToolSet = MockDbSet.Create(new List<Tool> { tool1, tool2 });
+            mockContext.Setup(c => c.Tool).Returns(mockToolSet.Object);
+
+            var mockToolTypeSet = MockDbSet.Create(toolTypesList);
+            mockContext.Setup(c => c.ToolType).Returns(mockToolTypeSet.Object);
+
+            var controller = new RentController(mockContext.Object);
+
+            controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = user } };
+
+            // Setup FindByIdAsync to return a mock IdentityUser<int>
+            mockUserManager
+                .Setup(u => u.FindByIdAsync(It.IsAny<string>()))
+                .ReturnsAsync((string id) => new IdentityUser<int> { UserName = "MockUserName" });
+
+            // Act
+            var result = await controller.RentHistory() as ViewResult;
+
+            // Assert
+            Assert.IsNotNull(result);
+
+            // Check if the model is of the correct type
+            var model = result.Model as List<RentAndToolType>;
+            Assert.IsNotNull(model);
+
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+
+            Assert.IsInstanceOfType(result.Model, typeof(List<RentAndToolType>));
+
         }
 
         [TestMethod]
