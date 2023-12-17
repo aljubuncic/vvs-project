@@ -1,7 +1,7 @@
 using Burgija.Data;
 using Burgija.Interfaces;
 using Burgija.Models;
-
+using Burgija.Tests;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -55,6 +55,7 @@ namespace Burgija
             });
 
             services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+            services.AddScoped<ISessionService, SessionService>();
 
         }
 
