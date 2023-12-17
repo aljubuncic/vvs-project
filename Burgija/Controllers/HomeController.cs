@@ -180,7 +180,7 @@ namespace Burgija.Controllers {
         /// <param name="toolTypes">The list of tool types to search.</param>
         /// <param name="search">The search term.</param>
         /// <returns>A list of tool types matching the search term.</returns>
-        private static List<ToolType> LinearSearch(List<ToolType> toolTypes, string search) {
+        public static List<ToolType> LinearSearch(List<ToolType> toolTypes, string search) {
             if (string.IsNullOrWhiteSpace(search)) {
                 return new List<ToolType>();
             }
