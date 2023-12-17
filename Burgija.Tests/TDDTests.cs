@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using Burgija.Interfaces;
 
 namespace Burgija.Tests {
     [TestClass]
@@ -24,7 +25,7 @@ namespace Burgija.Tests {
 
         [TestInitialize]
         public void TestSetup() {
-            rentController = new RentController(null);
+            rentController = new RentController((IApplicationDbContext)null);
             homeController = new HomeController(null, null);
             tools = CreateToolsByCategory(10, 10);
             discounts = new List<Discount>{

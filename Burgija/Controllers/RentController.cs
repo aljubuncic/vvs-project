@@ -14,6 +14,7 @@ using System.Collections;
 using Microsoft.AspNetCore.Http;
 using Burgija.ViewModels;
 using Burgija.Interfaces;
+using Burgija.Tests;
 
 namespace Burgija.Controllers
 {
@@ -24,15 +25,18 @@ namespace Burgija.Controllers
     {
         ///Application database context
         private readonly IApplicationDbContext _context;
-
+        private readonly ISessionService _sessionService;
         /// <summary>
         /// Initializes a new instance of the <see cref="RentController"/> class.
         /// </summary>
         /// <param name="context">The application database context.</param>
-        public RentController(IApplicationDbContext context)
+        public RentController(IApplicationDbContext context, ISessionService sessionService = null)
         {
             _context = context;
+            _sessionService = sessionService;
         }
+
+
 
         public double CalculateDiscount(Tool tool, int code, List<Discount> discounts) {
             double toolPrice = tool.ToolType.Price;
@@ -159,12 +163,12 @@ namespace Burgija.Controllers
             rentInput.UserId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
             // Retrieve the tool type ID from the session
-            var toolTypeId = HttpContext.Session.GetInt32("ToolType");
+            var toolTypeId = _sessionService.GetInt32("ToolType");
 
             // Query the database to find available tools based on the tool type and date range
             var tools = await _context.Tools
                 .Where(tool => tool.ToolTypeId == toolTypeId &&
-                               !_context.Rent.Any(rent =>
+                               !_context.Rents.Any(rent =>
                                    rent.ToolId == tool.Id &&
                                    (rentInput.StartOfRent < rent.EndOfRent && rentInput.EndOfRent > rent.StartOfRent)))
                 .ToListAsync();

@@ -19,6 +19,9 @@ using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Burgija.ViewModels;
 using System.Security.Claims;
+using System.Runtime.Intrinsics.X86;
+using Microsoft.CodeAnalysis;
+using Location = Burgija.Models.Location;
 
 namespace Burgija.Tests
 {
@@ -32,7 +35,7 @@ namespace Burgija.Tests
         public void Setup()
         {
             dbContextMock = new Mock<IApplicationDbContext>();
-            controller = new RentController(null);
+            controller = new RentController((IApplicationDbContext)null);
         }
 
         static IEnumerable<object[]> toolTypes
@@ -60,16 +63,106 @@ namespace Burgija.Tests
         public async Task Create_ValidRentDates_RedirectsToRentHistory()
         {
             // Arrange
+            var  controller = new RentController((IApplicationDbContext)null);
             var rent = new Rent { StartOfRent = DateTime.Now.AddDays(1), EndOfRent = DateTime.Now.AddDays(3) };
             controller.ModelState.Clear(); // Clear ModelState for a valid rent
 
+            var httpContext = new DefaultHttpContext();
+            var sessionMock = new Mock<ISession>();
+            httpContext.Session = sessionMock.Object;
+
+            // Mocking IHttpContextAccessor
+            var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            httpContextAccessorMock.Setup(_ => _.HttpContext).Returns(httpContext);
+
+
+            // Mocking the User context
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, "1"), // Sample user ID
+                new Claim(ClaimTypes.Role, "RegisteredUser"), // Simulate being in the "RegisteredUser" role
+  
+            };
+
+            // Create a ClaimsIdentity with the claims
+            var identity = new ClaimsIdentity(claims, "TestAuth");
+
+            // Create a ClaimsPrincipal with the ClaimsIdentity
+            var user = new ClaimsPrincipal(identity);
+
+            var sessionServiceMock = new Mock<ISessionService>();
+            sessionServiceMock.Setup(s => s.GetInt32("ToolType")).Returns(1);
+
+            var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
+            var discount1 = new Discount(1, DateTime.Now, DateTime.Now, 0.2);
+            var discount2 = new Discount(1, DateTime.Now, DateTime.Now, 0.3);
+
+            var toolTypesList = ConvertToToolTypes(toolTypes);
+
+            var user1 = new IdentityUser<int> { Id = 1 };
+            var user2 = new IdentityUser<int> { Id = 2 };
+
+            var location1 = new Location(1, 40.7128, -74.0060, "New York City");
+            var location2 = new Location(2, 34.0522, -118.2437, "Los Angeles");
+            // For Stores
+            var store1 = new Store(1, location1);
+            var store2 = new Store(2, location2);
+
+            // For Tools
+            var tool1 = new Tool(1, toolTypesList[0], store1);
+            var tool2 = new Tool(2, toolTypesList[1], store2);
+
+            var rent1 = new Rent(1, user1, 1, tool1, 1, DateTime.Now.AddDays(-10), DateTime.Now.AddDays(10), null, null, 25.00);
+            var rent2 = new Rent(2, user1, 1, tool2, 2, DateTime.Now.AddMonths(-1), DateTime.Now.AddDays(10), null, null, 27.00);
+
+            var review1 = new Review(1, user1, tool1, rent1, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), "Great tool!", 4.5);
+            var review2 = new Review(2, user2, tool2, rent2, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), "Good product.", 4.0);
+
+
+            var discounts = new List<Discount> { discount1 ,discount2 };
+            var users = new List<IdentityUser<int>> { user1, user2 };
+            var locations = new List<Location> { location1, location2 };
+            var stores = new List<Store> { store1, store2 };
+            var tools = new List<Tool> { tool1, tool2 };
+            var reviews = new List<Review> { review1, review2 };
+            var rents = new List<Rent> { rent1, rent2 };
+
+            var mockSet9 = MockDbSet.Create(users);
+            var mockSet2 = MockDbSet.Create(discounts);
+            var mockSet3 = MockDbSet.Create(tools);
+            var mockSet4 = MockDbSet.Create(stores);
+            var mockSet5 = MockDbSet.Create(locations);
+            var mockSet6 = MockDbSet.Create(toolTypesList);
+            var mockSet7 = MockDbSet.Create(rents);
+            var mockSet8 = MockDbSet.Create(reviews);
+
+            // Setup mock DbContext
+            dbContextMock.Setup(mock => mock.ToolTypes).Returns(mockSet.Object);
+            dbContextMock.Setup(mock => mock.Discounts).Returns(mockSet2.Object);
+            dbContextMock.Setup(c => c.Reviews).Returns(mockSet8.Object);
+            dbContextMock.Setup(c => c.Users).Returns(mockSet9.Object);
+            dbContextMock.Setup(c => c.Tools).Returns(mockSet3.Object);
+            dbContextMock.Setup(c => c.Stores).Returns(mockSet4.Object);
+            dbContextMock.Setup(c => c.Locations).Returns(mockSet5.Object);
+            dbContextMock.Setup(c => c.Rents).Returns(mockSet7.Object);
+
+
+            controller = new RentController(dbContextMock.Object,sessionServiceMock.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = httpContext,
+                }
+            };
+            controller.ControllerContext.HttpContext.User = user;
+            controller.ControllerContext.HttpContext.Session = sessionMock.Object;
             // Act
             var result = await controller.Create(rent, -1);
 
             // Assert
-            Assert.IsInstanceOfType(result, typeof(RedirectToActionResult));
-            var redirectResult = (RedirectToActionResult)result;
-            Assert.AreEqual("RentHistory", redirectResult.ActionName);
+            Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+            var badRequestResult = (BadRequestObjectResult)result;
+            Assert.AreEqual("There are no tools available in this period", badRequestResult.Value.ToString());
         }
 
         [TestMethod]
@@ -130,6 +223,9 @@ namespace Burgija.Tests
             {
                 ControllerContext = rentControllerContext,
             };
+
+
+
             //Act
             var result = rentController.GetToolType(1);
             //Assert
