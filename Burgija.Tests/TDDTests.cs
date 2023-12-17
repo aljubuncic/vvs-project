@@ -100,7 +100,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid1_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory1_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(1, 0);
@@ -114,7 +114,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid2_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory2_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(4, 0);
@@ -128,7 +128,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid3_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory3_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(1, 1);
@@ -142,7 +142,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid4_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory4_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(2, 2);
@@ -156,7 +156,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid5_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory5_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(4, 4);
@@ -170,7 +170,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid6_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory6_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(1, 3);
@@ -184,7 +184,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid7_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory7_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(2, 6);
@@ -198,7 +198,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid8_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory8_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(0, 1);
@@ -212,7 +212,7 @@ namespace Burgija.Tests {
         }
 
         [TestMethod]
-        public void Suggestions_Valid9_ReturnsSuggestions() {
+        public void Suggestions_ValidHistory9_ReturnsSuggestions() {
             // Arrange
             List<ToolType> suggestions = new List<ToolType>();
             List<ToolType> history = CreateToolsByCategory(3, 2);
