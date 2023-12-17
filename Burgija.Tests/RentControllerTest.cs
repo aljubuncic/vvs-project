@@ -265,6 +265,25 @@ namespace Burgija.Tests
             Assert.IsInstanceOfType(result, typeof(NotFoundResult));
         }
 
+        [TestMethod]
+        public async Task Create_ToolTypeIdIsInDb_ReturnsViewResult()
+        {
+            //Arrange
+            // Create a mock DbSet using the MockDbSet class
+            var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
+            int toolTypeId = 1;
+            // Setup mock DbContext
+            dbContextMock.Setup(mock => mock.ToolTypes).Returns(mockSet.Object);
+            // Set up the mock for FirstOrDefaultAsync
+            //mockSet.Setup(mock => mock.FirstOrDefaultAsync(tt => tt.Id == It.IsAny<int>())).ReturnsAsync((ToolType)null);
+
+            var rentController = new RentController(dbContextMock.Object);
+            //Act
+            var result = await rentController.Create(toolTypeId);
+            //Assert
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+        }
+
 
         public static IEnumerable<object[]> UcitajPodatkeCSV(string path)
         {
