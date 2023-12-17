@@ -113,6 +113,7 @@ namespace Burgija.Controllers {
         /// Displays the home page with a list of tool types based on search, price range, and sorting options.
         /// </summary>
         public async Task<IActionResult> Index(string search, double? priceFrom, double? priceTo, string sortOptions) {
+            ViewBag.SuggestedToolTypes = new List<ToolType>();
             // Check if no filters are applied, return all tool types.
             if (search == null && priceFrom == null && priceTo == null && sortOptions == null) {
                 var toolTypes = await _context.ToolTypes.ToListAsync();

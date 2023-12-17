@@ -137,43 +137,45 @@ namespace Burgija.Controllers
         /// <summary>
         /// Handles the HTTP POST request for creating a new rental.
         /// </summary>
-        /// <param name="r">The rental information to be created.</param>
+        /// <param name="rentInput">The rental information to be created.</param>
         /// <returns>A redirect to the 'RentHistory' action if the creation is successful; otherwise, a validation error.</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("StartOfRent,EndOfRent,DiscountId")] Rent r, int? coupon)
+        public async Task<IActionResult> Create([Bind("StartOfRent,EndOfRent,DiscountId")] Rent rentInput, int? coupon)
         {
             // Check if the return date is earlier than the start date
-            if (r.EndOfRent < r.StartOfRent)
+            if (rentInput.EndOfRent < rentInput.StartOfRent)
             {
                 return BadRequest("Date of return is earlier than date of taking");
             }
 
             // Check if the start date or return date is earlier than today
-            if (r.StartOfRent < DateTime.Now || r.EndOfRent < DateTime.Now)
+            if (rentInput.StartOfRent < DateTime.Now || rentInput.EndOfRent < DateTime.Now)
             {
                 return BadRequest("Date of taking or date of return is earlier than today");
             }
 
             // Set the user ID from the claims associated with the current user
-            r.UserId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            rentInput.UserId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
             // Retrieve the tool type ID from the session
             var toolTypeId = HttpContext.Session.GetInt32("ToolType");
-            
+
             // Query the database to find available tools based on the tool type and date range
             var tools = await _context.Tools
-                .Where(tool => tool.ToolType.Id == toolTypeId)
-                //.Where(tool => !_context.Rent.Any(rent =>
-                //    rent.ToolId == tool.Id &&
-                //   (r.EndOfRent < rent.StartOfRent || r.StartOfRent > rent.EndOfRent)))
+                .Where(tool => tool.ToolTypeId == toolTypeId &&
+                               !_context.Rent.Any(rent =>
+                                   rent.ToolId == tool.Id &&
+                                   (rentInput.StartOfRent < rent.EndOfRent && rentInput.EndOfRent > rent.StartOfRent)))
                 .ToListAsync();
+
+
 
             // Check if available tools were found
             if (tools.Count > 0)
             {
                 // Set the tool ID to the first available tool
-                r.ToolId = tools[0].Id;
+                rentInput.ToolId = tools[0].Id;
             }
             else
             {
@@ -185,19 +187,19 @@ namespace Burgija.Controllers
             var toolType = await _context.ToolTypes.FindAsync(toolTypeId);
 
             // Calculate the rent price based on the tool type's price and the rental duration
-            r.RentPrice = toolType.Price * r.EndOfRent.Subtract(r.StartOfRent).TotalDays;
+            rentInput.RentPrice = toolType.Price * rentInput.EndOfRent.Subtract(rentInput.StartOfRent).TotalDays;
             if (coupon != null)
             {
                 try
                 {
                     var discounts = await _context.Discounts.ToListAsync();
                     tools[0].ToolType = toolType;
-                    r.RentPrice = CalculateDiscount(tools[0], coupon??=-1, discounts) * r.EndOfRent.Subtract(r.StartOfRent).TotalDays;
-                    r.DiscountId = coupon;
+                    rentInput.RentPrice = CalculateDiscount(tools[0], coupon??=-1, discounts) * rentInput.EndOfRent.Subtract(rentInput.StartOfRent).TotalDays;
+                    rentInput.DiscountId = coupon;
                 }
                 catch (Exception ex)
                 {
-                    r.DiscountId = null;
+                    rentInput.DiscountId = null;
                 }
             }
                 
@@ -206,7 +208,7 @@ namespace Burgija.Controllers
             if (ModelState.IsValid)
             {
                 // Add the rent to the context and save changes
-                _context.Add(r);
+                _context.Add(rentInput);
                 await _context.SaveChangesAsync();
 
                 // Redirect to the RentHistory action if successful

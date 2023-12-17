@@ -124,7 +124,7 @@ namespace Burgija.Tests {
 
         static IEnumerable<object[]> toolTypes {
             get {
-                return UcitajPodatkeCSV("alati.csv");
+                return UcitajPodatkeCSV("tools.csv");
             }
         }
 

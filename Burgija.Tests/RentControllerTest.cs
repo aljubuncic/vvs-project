@@ -39,7 +39,7 @@ namespace Burgija.Tests
         {
             get
             {
-                return UcitajPodatkeCSV("alati.csv");
+                return UcitajPodatkeCSV("tools.csv");
             }
         }
 
