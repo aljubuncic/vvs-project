@@ -441,6 +441,97 @@ namespace Burgija.Tests {
 
         }
 
+        [TestMethod]
+        public async Task Test_SendReviews()
+        {
+            var toolTypesList = ConvertToToolTypes(toolTypes);
+
+            // For Users
+            var user1 = new IdentityUser<int> { Id = 1 };
+            var user2 = new IdentityUser<int> { Id = 2 };
+
+            // For Locations
+            var location1 = new Location(1, 40.7128, -74.0060, "New York City");
+            var location2 = new Location(2, 34.0522, -118.2437, "Los Angeles");
+
+            // For Stores
+            var store1 = new Store(1, location1);
+            var store2 = new Store(2, location2);
+
+            // For Tools
+            var tool1 = new Tool(1, toolTypesList[0], store1);
+            var tool2 = new Tool(2, toolTypesList[1], store2);
+
+            var rent1 = new Rent(1, user1, 1, tool1, 1, DateTime.Now.AddDays(-10), DateTime.Now.AddDays(10), null, null, 25.00);
+            var rent2 = new Rent(2, user1, 1, tool2, 2, DateTime.Now.AddMonths(-1), DateTime.Now.AddDays(10), null, null, 27.00);
+
+            // For Reviews
+           var review1 = new Review(1, user1, tool1, rent1, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), "Great tool!", 4.5);
+           var review2 = new Review(2, user2, tool2, rent2, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), "Good product.", 4.0);
+
+            // Create lists to hold the objects
+            var users = new List<IdentityUser<int>> { user1, user2 };
+            var locations = new List<Location> { location1, location2 };
+            var stores = new List<Store> { store1, store2 };
+            var tools = new List<Tool> { tool1, tool2 };
+            var reviews = new List<Review> { review1, review2 };
+            var rents = new List<Rent> { rent1, rent2 };
+
+            var mockSet = MockDbSet.Create(reviews);
+            var mockSet2 = MockDbSet.Create(users);
+            var mockSet3 = MockDbSet.Create(tools);
+            var mockSet4 = MockDbSet.Create(stores);
+            var mockSet5 = MockDbSet.Create(locations);
+            var mockSet6 = MockDbSet.Create(toolTypesList);
+            var mockSet7 = MockDbSet.Create(rents);
+
+            var mockContext = new Mock<IApplicationDbContext>();
+            mockContext.Setup(c => c.ToolTypes).Returns(mockSet6.Object);
+            mockContext.Setup(c => c.Reviews).Returns(mockSet.Object);
+            mockContext.Setup(c => c.Users).Returns(mockSet2.Object);
+            mockContext.Setup(c => c.Tools).Returns(mockSet3.Object);
+            mockContext.Setup(c => c.Stores).Returns(mockSet4.Object);
+            mockContext.Setup(c => c.Locations).Returns(mockSet5.Object);
+            mockContext.Setup(c => c.Rents).Returns(mockSet7.Object);
+
+            // Mocking the User context
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, "1"), // Sample user ID
+                new Claim(ClaimTypes.Role, "RegisteredUser"), // Simulate being in the "RegisteredUser" role
+  
+            };
+
+            // Create a ClaimsIdentity with the claims
+            var identity = new ClaimsIdentity(claims, "TestAuth");
+
+            // Create a ClaimsPrincipal with the ClaimsIdentity
+            var user = new ClaimsPrincipal(identity);
+
+            // Mocking UserManager<IdentityUser<int>>
+            var mockUserStore = new Mock<IUserStore<IdentityUser<int>>>();
+            var mockUserManager = new Mock<UserManager<IdentityUser<int>>>(mockUserStore.Object, null, null, null, null, null, null, null, null);
+
+            var controller = new HomeController(mockContext.Object, mockUserManager.Object);
+
+            controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = user } };
+
+            // Setup FindByIdAsync to return a mock IdentityUser<int>
+            mockUserManager
+                .Setup(u => u.FindByIdAsync(It.IsAny<string>()))
+                .ReturnsAsync((string id) => new IdentityUser<int> { UserName = "MockUserName" });
+
+            // Act
+            var result = await controller.SendReview(review1, 1, "Great tool!", 4.5) as RedirectToActionResult;
+            Assert.AreEqual(result.ActionName, "ToolDetails");
+            var check = result.RouteValues.Values;
+            Assert.AreEqual(check.First(),1);
+
+            var result2 = await controller.SendReview(review2, 13, "Good product.", 4.0) as BadRequestObjectResult;
+            Assert.AreEqual(result2.Value, "You have not rented this tool before!");
+
+        }
+
         public static IEnumerable<object[]> UcitajPodatkeCSV(string path) {
             using (var reader = new StreamReader(path))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture)) {
