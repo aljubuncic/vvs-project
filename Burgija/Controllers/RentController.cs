@@ -162,7 +162,7 @@ namespace Burgija.Controllers
             var toolTypeId = HttpContext.Session.GetInt32("ToolType");
             
             // Query the database to find available tools based on the tool type and date range
-            var tools = await _context.Tool
+            var tools = await _context.Tools
                 .Where(tool => tool.ToolType.Id == toolTypeId)
                 //.Where(tool => !_context.Rent.Any(rent =>
                 //    rent.ToolId == tool.Id &&
@@ -182,7 +182,7 @@ namespace Burgija.Controllers
             }
             
             // Retrieve the tool type from the database
-            var toolType = await _context.ToolType.FindAsync(toolTypeId);
+            var toolType = await _context.ToolTypes.FindAsync(toolTypeId);
 
             // Calculate the rent price based on the tool type's price and the rental duration
             r.RentPrice = toolType.Price * r.EndOfRent.Subtract(r.StartOfRent).TotalDays;
@@ -190,7 +190,7 @@ namespace Burgija.Controllers
             {
                 try
                 {
-                    var discounts = await _context.Discount.ToListAsync();
+                    var discounts = await _context.Discounts.ToListAsync();
                     tools[0].ToolType = toolType;
                     r.RentPrice = CalculateDiscount(tools[0], coupon??=-1, discounts) * r.EndOfRent.Subtract(r.StartOfRent).TotalDays;
                     r.DiscountId = coupon;

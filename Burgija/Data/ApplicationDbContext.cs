@@ -36,6 +36,7 @@ namespace Burgija.Data
         public DbSet<Review> Reviews { get; set; }
         public DbSet<IdentityUser<int>> Users { get; set; }
         public DbSet<Rent> Rents { get; set; }
+        public DbSet<Discount> Discounts { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.Entity<Administrator>().ToTable(nameof(Administrator));
