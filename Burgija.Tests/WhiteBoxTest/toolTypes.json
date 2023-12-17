@@ -1,0 +1,43 @@
+﻿[
+  {
+    "Id": 1,
+    "Name": "Hammer",
+    "Category": 2,
+    "Description": "Tool for hammering nails",
+    "Price": 12,
+    "Image": ""
+  },
+  {
+    "Id": 2,
+    "Name": "name",
+    "Category": 0,
+    "Description": "",
+    "Price": 4,
+    "Image": ""
+  },
+  {
+    "Id": 3,
+    "Name": "CarpetCleaner",
+    "Category": 0,
+    "Description": "",
+    "Price": 3,
+    "Image": ""
+  },
+  {
+    "Id": 4,
+    "Name": "name",
+    "Category": 1,
+    "Description": "",
+    "Price": 2,
+    "Image": ""
+  },
+  {
+    "Id": 5,
+    "Name": "name",
+    "Category": 10,
+    "Description": "",
+    "Price": 1,
+    "Image": ""
+  }
+
+]

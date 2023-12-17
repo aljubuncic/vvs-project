@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 
 namespace Burgija.Models
 {
@@ -60,6 +61,19 @@ namespace Burgija.Models
         public int CompareTo(ToolType other)
         {
             return Price.CompareTo(other.Price);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+
+            ToolType other = (ToolType)obj;
+            return Id == other.Id && Name == other.Name && 
+                Category == other.Category && Description == other.Description 
+                && Price == other.Price && Image == other.Image;
         }
 
         #endregion
