@@ -13,6 +13,10 @@ using Burgija.Models;
 using System.Collections.Generic;
 using System;
 using Burgija.Interfaces;
+using CsvHelper;
+using System.Globalization;
+using System.IO;
+using Microsoft.EntityFrameworkCore;
 
 namespace Burgija.Tests
 {
@@ -27,6 +31,14 @@ namespace Burgija.Tests
         {
             dbContextMock = new Mock<IApplicationDbContext>();
             controller = new RentController(null);
+        }
+
+        static IEnumerable<object[]> toolTypes
+        {
+            get
+            {
+                return UcitajPodatkeCSV("alati.csv");
+            }
         }
 
         [TestMethod]
@@ -147,11 +159,61 @@ namespace Burgija.Tests
         public async Task Create_ToolTypeIdNotInDb_ReturnsNotFoundResult()
         {
             //Arrange
+            // Create a mock DbSet using the MockDbSet class
+            var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
+            int toolTypeId = -1;
+            // Setup mock DbContext
+            dbContextMock.Setup(mock => mock.ToolType).Returns(mockSet.Object);
+            // Set up the mock for FirstOrDefaultAsync
+            //mockSet.Setup(mock => mock.FirstOrDefaultAsync(tt => tt.Id == It.IsAny<int>())).ReturnsAsync((ToolType)null);
+
             var rentController = new RentController(dbContextMock.Object);
             //Act
-            var result = await rentController.Create(-1);
+            var result = await rentController.Create(toolTypeId);
             //Assert
             Assert.IsInstanceOfType(result, typeof(NotFoundResult));
+        }
+
+
+        public static IEnumerable<object[]> UcitajPodatkeCSV(string path)
+        {
+            using (var reader = new StreamReader(path))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                var rows = csv.GetRecords<dynamic>();
+                foreach (var row in rows)
+                {
+                    var values = ((IDictionary<String, Object>)row).Values;
+                    var elements = values.Select(elem => elem.ToString()).ToList();
+                    yield return new object[] { elements[0], elements[1],elements[2],
+                        elements[3],elements[4],elements[5] };
+
+                }
+
+            }
+        }
+
+        public List<ToolType> ConvertToToolTypes(IEnumerable<object[]> toolTypeData)
+        {
+            List<ToolType> toolTypes = new List<ToolType>();
+
+            foreach (var row in toolTypeData)
+            {
+                // Assuming the columns in the IEnumerable<object[]> match the properties of ToolType
+                var toolType = new ToolType
+                {
+                    Id = Convert.ToInt32(row[0]),
+                    Name = row[1].ToString(),
+                    Category = (Category)Enum.Parse(typeof(Category), row[2].ToString()),
+                    Description = row[3].ToString(),
+                    Price = Convert.ToDouble(row[4]),
+                    Image = row[5].ToString()
+                };
+
+                toolTypes.Add(toolType);
+            }
+
+            return toolTypes;
         }
     }
 }
