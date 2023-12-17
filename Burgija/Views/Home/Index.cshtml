@@ -27,6 +27,16 @@
             <partial name="~/Views/Home/_Filter.cshtml" />
         </div>
         <div class="right-section">
+            <div class="filters-bar">
+                <p class="results">Suggested: </p>
+            </div>
+            <div class="tools-grid">
+                @foreach (var item in ViewBag.SuggestedToolTypes)
+                {
+                    @Html.Partial("_ToolTypeItem",(ToolType)item)
+                }
+
+            </div>
             <div class="filters-bar" >
                 <p class="results">Items: </p>
             </div>

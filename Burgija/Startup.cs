@@ -1,4 +1,5 @@
 using Burgija.Data;
+using Burgija.Interfaces;
 using Burgija.Models;
 
 using Microsoft.AspNetCore.Builder;
@@ -52,6 +53,8 @@ namespace Burgija
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.IsEssential = true;
             });
+
+            services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
         }
 

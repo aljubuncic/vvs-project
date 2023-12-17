@@ -16,14 +16,13 @@ using Burgija.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using static Humanizer.On;
+using Burgija.Interfaces;
 
-namespace Burgija.Controllers
-{
+namespace Burgija.Controllers {
     // HomeController class is responsible for handling requests related to the home page and tool-related functionalities.
-    public class HomeController : Controller
-    {
+    public class HomeController : Controller {
         // Application database context for interacting with the underlying data store.
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
         // Pre-defined categories of tools.
         private string[] categories = {
@@ -50,42 +49,100 @@ namespace Burgija.Controllers
         private readonly UserManager<IdentityUser<int>> _userManager;
 
         // Constructor that initializes the controller with the required dependencies.
-        public HomeController(ApplicationDbContext context, UserManager<IdentityUser<int>> userManager)
-        {
+        public HomeController(IApplicationDbContext context, UserManager<IdentityUser<int>> userManager) {
             _context = context;
             _userManager = userManager;
+        }
+
+        public List<ToolType> SuggestedTools(List<ToolType> history, List<ToolType> tools) {
+            if (history.Count == 0)
+                throw new ArgumentException();
+
+            List<ToolType> result = new List<ToolType>();
+            Dictionary<Category, int> map = new Dictionary<Category, int>();
+            for (int i = 0; i < history.Count; i++) {
+                if (map.ContainsKey(history[i].Category)) {
+                    map[history[i].Category]++;
+                } else {
+                    map[history[i].Category] = 1;
+                }
+            }
+
+            tools.RemoveAll(tool => history.Exists(historyTool => tool.Id == historyTool.Id));
+
+            foreach (var pair in map) {
+                double k = Math.Round(4.0 * pair.Value / history.Count);
+                for (int i = 0; i < k && result.Count < 4; i++) {
+                    List<ToolType> filteredList = tools.FindAll(el => el.Category == pair.Key && !result.Exists(x => x.Id == el.Id));
+                    if (filteredList.Count == 0)
+                        throw new ArgumentException();
+                    result.Add(filteredList[new Random().Next(0, filteredList.Count)]);
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<List<ToolType>> GetRentHistoryToolTypes()
+        {
+            try
+            {
+                // Extract the user ID from the claims associated with the current user
+                var userId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                // Query the database to retrieve rent history information
+                var rentHistory = await _context.Rents
+                    // Filter by the current user's ID
+                    .Where(r => r.UserId == userId)
+                    // Join the Rent table with the Tool table using the ToolId
+                    .Join(_context.Tools, rent => rent.ToolId, tool => tool.Id, (rent, tool) => new { Rent = rent, Tool = tool })
+                    // Join the result with the ToolType table using the ToolTypeId from the Tool table
+                    .Join(_context.ToolTypes, rt => rt.Tool.ToolTypeId, toolType => toolType.Id, (rt, toolType) => new RentAndToolType(rt.Rent, toolType))
+                    // Convert the result to a List asynchronously
+                    .ToListAsync();
+
+                return rentHistory.Select(rh => rh.ToolType).ToList();
+            }
+            catch(Exception ex)
+            {
+                return new List<ToolType>();
+            }
+            
         }
 
         /// <summary>
         /// Displays the home page with a list of tool types based on search, price range, and sorting options.
         /// </summary>
-        public async Task<IActionResult> Index(string search, double? priceFrom, double? priceTo, string sortOptions)
-        {
+        public async Task<IActionResult> Index(string search, double? priceFrom, double? priceTo, string sortOptions) {
             // Check if no filters are applied, return all tool types.
-            if (search == null && priceFrom == null && priceTo == null && sortOptions == null)
-            {
-                return View(await _context.ToolType.ToListAsync());
+            if (search == null && priceFrom == null && priceTo == null && sortOptions == null) {
+                var toolTypes = await _context.ToolTypes.ToListAsync();
+                try
+                {
+                    var rentHistoryToolTypes = await GetRentHistoryToolTypes();
+                    ViewBag.SuggestedToolTypes = SuggestedTools(rentHistoryToolTypes, toolTypes);
+                }
+                catch(Exception)
+                {
+                    ViewBag.SuggestedToolTypes = new List<ToolType>();
+                }
+                return View(toolTypes);
             }
-            
-            List<ToolType> filterResults = await _context.ToolType.ToListAsync();
+
+            List<ToolType> filterResults = await _context.ToolTypes.ToListAsync();
 
             // Search by tool type name.
-            if (search != null)
-            {
+            if (search != null) {
                 filterResults = LinearSearch(filterResults, search);
             }
 
             // Filter by price range.
-            if (priceFrom != null && priceTo != null)
-            {
+            if (priceFrom != null && priceTo != null) {
                 filterResults = LinearSearchByPrice(filterResults, (double)priceFrom, (double)priceTo);
             }
 
             // Sort results based on the selected sorting option.
-            if (!string.IsNullOrEmpty(sortOptions))
-            {
-                switch (sortOptions)
-                {
+            if (!string.IsNullOrEmpty(sortOptions)) {
+                switch (sortOptions) {
                     case "lowestPrice":
                         QuickSort(filterResults);
                         break;
@@ -104,8 +161,7 @@ namespace Burgija.Controllers
         /// <summary>
         /// Handles filtering of tools based on price range and sorting options.
         /// </summary>
-        public Task<IActionResult> FilterTools(double? priceFrom, double? priceTo, string sortOptions)
-        {
+        public Task<IActionResult> FilterTools(double? priceFrom, double? priceTo, string sortOptions) {
             priceFrom ??= 0;
             priceTo ??= 10000;
             var queryParameters = new Dictionary<string, string>
@@ -123,10 +179,8 @@ namespace Burgija.Controllers
         /// <param name="toolTypes">The list of tool types to search.</param>
         /// <param name="search">The search term.</param>
         /// <returns>A list of tool types matching the search term.</returns>
-        private static List<ToolType> LinearSearch(List<ToolType> toolTypes, string search)
-        {
-            if (string.IsNullOrWhiteSpace(search))
-            {
+        private static List<ToolType> LinearSearch(List<ToolType> toolTypes, string search) {
+            if (string.IsNullOrWhiteSpace(search)) {
                 return new List<ToolType>();
             }
 
@@ -134,10 +188,8 @@ namespace Burgija.Controllers
 
             List<ToolType> results = new List<ToolType>();
 
-            foreach (var toolType in toolTypes)
-            {
-                if (toolType.Name.ToLower().Contains(search))
-                {
+            foreach (var toolType in toolTypes) {
+                if (toolType.Name.ToLower().Contains(search)) {
                     results.Add(toolType);
                 }
             }
@@ -152,14 +204,11 @@ namespace Burgija.Controllers
         /// <param name="priceFrom">The minimum price.</param>
         /// <param name="priceTo">The maximum price.</param>
         /// <returns>A list of tool types within the specified price range.</returns>
-        private static List<ToolType> LinearSearchByPrice(List<ToolType> toolTypes, double priceFrom, double priceTo)
-        {
+        private static List<ToolType> LinearSearchByPrice(List<ToolType> toolTypes, double priceFrom, double priceTo) {
             List<ToolType> results = new List<ToolType>();
 
-            foreach (var toolType in toolTypes)
-            {
-                if (toolType.Price >= priceFrom && toolType.Price <= priceTo)
-                {
+            foreach (var toolType in toolTypes) {
+                if (toolType.Price >= priceFrom && toolType.Price <= priceTo) {
                     results.Add(toolType);
                 }
             }
@@ -172,8 +221,7 @@ namespace Burgija.Controllers
         /// </summary>
         /// <param name="list">The list of tool types to be sorted.</param>
         /// <returns>The sorted list of tool types.</returns>
-        private static List<ToolType> MergeSort(List<ToolType> list)
-        {
+        public static List<ToolType> MergeSort(List<ToolType> list) {
             if (list.Count <= 1)
                 return list;
 
@@ -193,21 +241,16 @@ namespace Burgija.Controllers
         /// <param name="left">The left sorted list.</param>
         /// <param name="right">The right sorted list.</param>
         /// <returns>The merged sorted list of tool types.</returns>
-        private static List<ToolType> Merge(List<ToolType> left, List<ToolType> right)
-        {
+        private static List<ToolType> Merge(List<ToolType> left, List<ToolType> right) {
             List<ToolType> result = new List<ToolType>();
             int leftIndex = 0;
             int rightIndex = 0;
 
-            while (leftIndex < left.Count && rightIndex < right.Count)
-            {
-                if (string.Compare(left[leftIndex].Name, right[rightIndex].Name, StringComparison.OrdinalIgnoreCase) < 0)
-                {
+            while (leftIndex < left.Count && rightIndex < right.Count) {
+                if (string.Compare(left[leftIndex].Name, right[rightIndex].Name, StringComparison.OrdinalIgnoreCase) < 0) {
                     result.Add(left[leftIndex]);
                     leftIndex++;
-                }
-                else
-                {
+                } else {
                     result.Add(right[rightIndex]);
                     rightIndex++;
                 }
@@ -223,8 +266,7 @@ namespace Burgija.Controllers
         /// Sorts a list of tool types using the QuickSort algorithm.
         /// </summary>
         /// <param name="toolTypes">The list of tool types to be sorted.</param>
-        private static void QuickSort(List<ToolType> toolTypes)
-        {
+        public static void QuickSort(List<ToolType> toolTypes) {
             QuickSort(toolTypes, 0, toolTypes.Count - 1);
         }
 
@@ -234,10 +276,8 @@ namespace Burgija.Controllers
         /// <param name="toolTypes">The list of tool types to be sorted.</param>
         /// <param name="low">The low index of the range to be sorted.</param>
         /// <param name="high">The high index of the range to be sorted.</param>
-        private static void QuickSort(List<ToolType> toolTypes, int low, int high)
-        {
-            if (low < high)
-            {
+        private static void QuickSort(List<ToolType> toolTypes, int low, int high) {
+            if (low < high) {
                 int partitionIndex = Partition(toolTypes, low, high);
 
                 QuickSort(toolTypes, low, partitionIndex - 1);
@@ -252,15 +292,12 @@ namespace Burgija.Controllers
         /// <param name="low">The low index of the range to be partitioned.</param>
         /// <param name="high">The high index of the range to be partitioned.</param>
         /// <returns>The partition index.</returns>
-        private static int Partition(List<ToolType> toolTypes, int low, int high)
-        {
+        private static int Partition(List<ToolType> toolTypes, int low, int high) {
             double pivot = toolTypes[high].Price;
             int i = (low - 1);
 
-            for (int j = low; j < high; j++)
-            {
-                if (toolTypes[j].Price < pivot)
-                {
+            for (int j = low; j < high; j++) {
+                if (toolTypes[j].Price < pivot) {
                     i++;
                     Swap(toolTypes, i, j);
                 }
@@ -276,8 +313,7 @@ namespace Burgija.Controllers
         /// <param name="toolTypes">The list of tool types.</param>
         /// <param name="i">The index of the first element.</param>
         /// <param name="j">The index of the second element.</param>
-        private static void Swap(List<ToolType> toolTypes, int i, int j)
-        {
+        private static void Swap(List<ToolType> toolTypes, int i, int j) {
             ToolType temp = toolTypes[i];
             toolTypes[i] = toolTypes[j];
             toolTypes[j] = temp;
@@ -287,24 +323,19 @@ namespace Burgija.Controllers
         /// Sorts a list of tool types in descending order using the Selection Sort algorithm.
         /// </summary>
         /// <param name="toolTypes">The list of tool types to be sorted.</param>
-        private static void SelectionSortDescending(List<ToolType> toolTypes)
-        {
+        public static void SelectionSortDescending(List<ToolType> toolTypes) {
             int n = toolTypes.Count;
 
-            for (int i = 0; i < n - 1; i++)
-            {
+            for (int i = 0; i < n - 1; i++) {
                 int maxIndex = i;
 
-                for (int j = i + 1; j < n; j++)
-                {
-                    if (toolTypes[j].Price > toolTypes[maxIndex].Price)
-                    {
+                for (int j = i + 1; j < n; j++) {
+                    if (toolTypes[j].Price > toolTypes[maxIndex].Price) {
                         maxIndex = j;
                     }
                 }
 
-                if (maxIndex != i)
-                {
+                if (maxIndex != i) {
                     // Swap toolTypes[i] and toolTypes[maxIndex]
                     Swap(toolTypes, i, maxIndex);
                 }
@@ -325,18 +356,18 @@ namespace Burgija.Controllers
                 return NotFound();
             }
 
+            List<ToolType> allTools = await _context.ToolTypes.ToListAsync();
             // Retrieve the tool type with the specified ID
-            var toolType = await _context.ToolType.FirstOrDefaultAsync(m => m.Id == id);
-
+            var toolType = allTools.Find(x => x.Id == id);
             if (toolType == null)
             {
                 return NotFound();
             }
 
             // Retrieve reviews and users associated with the tool type
-            var reviewsAndUsers = await _context.Review
+            var reviewsAndUsers = await _context.Reviews
                 .Join(
-                    _context.Tool,
+                    _context.Tools,
                     review => review.ToolId,
                     tool => tool.Id,
                     (review, tool) => new { Review = review, Tool = tool }
@@ -356,10 +387,10 @@ namespace Burgija.Controllers
                 .ToListAsync();
 
             // Retrieve tool and store information associated with the tool type
-            var toolAndStores = await _context.Tool
-                .Join(_context.Store, t => t.StoreId, s => s.Id, (t, s) => new { Tool = t, Store = s })
-                .Join(_context.Location, ts => ts.Store.LocationId, l => l.Id, (ts, l) => new { ts.Tool, ts.Store, Location = l })
-                .Join(_context.ToolType, tsl => tsl.Tool.ToolTypeId, tt => tt.Id, (tsl, tt) => new { tsl.Tool, tsl.Store, tsl.Location, ToolType = tt })
+            var toolAndStores = await _context.Tools
+                .Join(_context.Stores, t => t.StoreId, s => s.Id, (t, s) => new { Tool = t, Store = s })
+                .Join(_context.Locations, ts => ts.Store.LocationId, l => l.Id, (ts, l) => new { ts.Tool, ts.Store, Location = l })
+                .Join(_context.ToolTypes, tsl => tsl.Tool.ToolTypeId, tt => tt.Id, (tsl, tt) => new { tsl.Tool, tsl.Store, tsl.Location, ToolType = tt })
                 .Where(result => result.ToolType.Id == toolType.Id)
                 .GroupBy(result => new { result.Location.Address, result.Store.Id })
                 .Select(group => new ToolAndStore
@@ -401,15 +432,15 @@ namespace Burgija.Controllers
         public async Task<IActionResult> WhereYouCanFindUs()
         {
             // Retrieve the list of stores and locations from the database
-            List<Store> stores = await _context.Store.ToListAsync();
-            List<Location> locations = await _context.Location.ToListAsync();
+            List<Store> stores = await _context.Stores.ToListAsync();
+            List<Location> locations = await _context.Locations.ToListAsync();
 
             // Set ViewBag properties for the view
             ViewBag.Store = stores;
             ViewBag.Location = locations;
 
             // Return the view with information about store locations
-            return View();
+            return View("FindUs");
         }
 
 
@@ -432,10 +463,10 @@ namespace Burgija.Controllers
             var userId = Int32.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
             // Retrieve rents associated with the user and the specified tool type
-            var rents = await _context.Rent
-                .Join(_context.Users, r => r.UserId, u => u.Id, (rent, user) => new { Rent = rent, User = user })
-                .Join(_context.Tool, ru => ru.Rent.ToolId, t => t.Id, (ru, tool) => new { ru.Rent, ru.User, Tool = tool })
-                .Join(_context.ToolType, rt => rt.Tool.ToolTypeId, tt => tt.Id, (rt, toolType) => new { rt.Rent, rt.User, rt.Tool, ToolType = toolType })
+            var rents = await _context.Rents
+                .Join((_context as IApplicationDbContext).Users, r => r.UserId, u => u.Id, (rent, user) => new { Rent = rent, User = user })
+                .Join(_context.Tools, ru => ru.Rent.ToolId, t => t.Id, (ru, tool) => new { ru.Rent, ru.User, Tool = tool })
+                .Join(_context.ToolTypes, rt => rt.Tool.ToolTypeId, tt => tt.Id, (rt, toolType) => new { rt.Rent, rt.User, rt.Tool, ToolType = toolType })
                 .Where(result => result.ToolType.Id == toolTypeId && result.User.Id == userId)
                 .Select(result => result.Rent)
                 .ToListAsync();

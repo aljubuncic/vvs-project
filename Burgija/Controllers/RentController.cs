@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Collections;
 using Microsoft.AspNetCore.Http;
 using Burgija.ViewModels;
+using Burgija.Interfaces;
 
 namespace Burgija.Controllers
 {
@@ -22,15 +23,31 @@ namespace Burgija.Controllers
     public class RentController : Controller
     {
         ///Application database context
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RentController"/> class.
         /// </summary>
         /// <param name="context">The application database context.</param>
-        public RentController(ApplicationDbContext context)
+        public RentController(IApplicationDbContext context)
         {
             _context = context;
+        }
+
+        public double CalculateDiscount(Tool tool, int code, List<Discount> discounts) {
+            double toolPrice = tool.ToolType.Price;
+            double discountPrice;
+            for (int i = 0; i < discounts.Count; i++) {
+                if (code == discounts[i].Id) {
+                    if (DateTime.Now < discounts[i].StartOfDiscount || DateTime.Now > discounts[i].EndOfDiscount) {
+                        throw new InvalidOperationException();
+                    } else {
+                        discountPrice = toolPrice * (1 - discounts[i].Percent / 100);
+                        return discountPrice;
+                    }
+                }
+            }
+            throw new ArgumentException();
         }
 
         /// <summary>
@@ -98,8 +115,9 @@ namespace Burgija.Controllers
             }
 
             // Retrieve the tool type with the specified ID from the database
-            var toolType = await _context.ToolType.FirstOrDefaultAsync(m => m.Id == toolTypeId);
-
+            List<ToolType> allTools = await _context.ToolTypes.ToListAsync();
+            // Retrieve the tool type with the specified ID
+            var toolType = allTools.Find(x => x.Id == toolTypeId);
             // Check if the tool type with the specified ID is not found
             if (toolType == null)
             {
@@ -123,7 +141,7 @@ namespace Burgija.Controllers
         /// <returns>A redirect to the 'RentHistory' action if the creation is successful; otherwise, a validation error.</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("StartOfRent,EndOfRent,DiscountId")] Rent r)
+        public async Task<IActionResult> Create([Bind("StartOfRent,EndOfRent,DiscountId")] Rent r, int? coupon)
         {
             // Check if the return date is earlier than the start date
             if (r.EndOfRent < r.StartOfRent)
@@ -144,34 +162,45 @@ namespace Burgija.Controllers
             var toolTypeId = HttpContext.Session.GetInt32("ToolType");
             
             // Query the database to find available tools based on the tool type and date range
-            var toolIds = await _context.Tool
+            var tools = await _context.Tools
                 .Where(tool => tool.ToolType.Id == toolTypeId)
-                .Where(tool => !_context.Rent.Any(rent =>
-                    rent.ToolId == tool.Id &&
-                    (r.EndOfRent < rent.StartOfRent || r.StartOfRent > rent.EndOfRent)))
-                .Select(tool => tool.Id)
+                //.Where(tool => !_context.Rent.Any(rent =>
+                //    rent.ToolId == tool.Id &&
+                //   (r.EndOfRent < rent.StartOfRent || r.StartOfRent > rent.EndOfRent)))
                 .ToListAsync();
 
             // Check if available tools were found
-            if (toolIds.Count > 0)
+            if (tools.Count > 0)
             {
                 // Set the tool ID to the first available tool
-                r.ToolId = toolIds[0];
+                r.ToolId = tools[0].Id;
             }
             else
             {
                 // Return a BadRequest response if no tools are available in the specified period
                 return BadRequest("There are no tools available in this period");
             }
-
-            // To be implemented: Set the DiscountId (currently set to null as a placeholder)
-            r.DiscountId = null;
-
+            
             // Retrieve the tool type from the database
-            var toolType = await _context.ToolType.FindAsync(toolTypeId);
+            var toolType = await _context.ToolTypes.FindAsync(toolTypeId);
 
             // Calculate the rent price based on the tool type's price and the rental duration
             r.RentPrice = toolType.Price * r.EndOfRent.Subtract(r.StartOfRent).TotalDays;
+            if (coupon != null)
+            {
+                try
+                {
+                    var discounts = await _context.Discounts.ToListAsync();
+                    tools[0].ToolType = toolType;
+                    r.RentPrice = CalculateDiscount(tools[0], coupon??=-1, discounts) * r.EndOfRent.Subtract(r.StartOfRent).TotalDays;
+                    r.DiscountId = coupon;
+                }
+                catch (Exception ex)
+                {
+                    r.DiscountId = null;
+                }
+            }
+                
 
             // Check if the model state is valid
             if (ModelState.IsValid)

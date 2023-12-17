@@ -47,7 +47,11 @@ namespace Burgija.Models
             Id = id;
             ToolType = toolType;
             Store = store;
+            ToolTypeId = toolType.Id;
+            StoreId = store.Id;
         }
+
+
 
         public Tool() { }
 
