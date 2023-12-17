@@ -115,8 +115,9 @@ namespace Burgija.Controllers
             }
 
             // Retrieve the tool type with the specified ID from the database
-            var toolType = await _context.ToolType.FirstOrDefaultAsync(m => m.Id == toolTypeId);
-
+            List<ToolType> allTools = await _context.ToolTypes.ToListAsync();
+            // Retrieve the tool type with the specified ID
+            var toolType = allTools.Find(x => x.Id == toolTypeId);
             // Check if the tool type with the specified ID is not found
             if (toolType == null)
             {

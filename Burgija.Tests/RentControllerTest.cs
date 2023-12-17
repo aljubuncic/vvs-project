@@ -254,7 +254,7 @@ namespace Burgija.Tests
             var mockSet = MockDbSet.Create(ConvertToToolTypes(toolTypes));
             int toolTypeId = -1;
             // Setup mock DbContext
-            dbContextMock.Setup(mock => mock.ToolType).Returns(mockSet.Object);
+            dbContextMock.Setup(mock => mock.ToolTypes).Returns(mockSet.Object);
             // Set up the mock for FirstOrDefaultAsync
             //mockSet.Setup(mock => mock.FirstOrDefaultAsync(tt => tt.Id == It.IsAny<int>())).ReturnsAsync((ToolType)null);
 
