@@ -205,7 +205,7 @@ namespace Burgija.Controllers {
         /// <param name="priceFrom">The minimum price.</param>
         /// <param name="priceTo">The maximum price.</param>
         /// <returns>A list of tool types within the specified price range.</returns>
-        private static List<ToolType> LinearSearchByPrice(List<ToolType> toolTypes, double priceFrom, double priceTo) {
+        public static List<ToolType> LinearSearchByPrice(List<ToolType> toolTypes, double priceFrom, double priceTo) {
             List<ToolType> results = new List<ToolType>();
 
             foreach (var toolType in toolTypes) {
